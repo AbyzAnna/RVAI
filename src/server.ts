@@ -3,6 +3,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { createServer as createHttpServer, type IncomingMessage, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { AGENTS } from "./agents/index.js";
+import { ACTIONS, handleAuth } from "./auth.js";
 import { pickProvider } from "./llm.js";
 import { run, StepError, type RunOptions } from "./orchestrator.js";
 
@@ -78,6 +79,13 @@ export function createServer(base: RunOptions = {}): Server {
       if (req.method === "GET" && url === "/api/health") {
         const env = base.env ?? process.env;
         return send(200, { ok: true, ai: base.offline ? null : pickProvider(env, base.client) });
+      }
+      const auth = /^\/api\/auth\/([a-z]+)$/.exec(url.split("?")[0]);
+      if (auth && (ACTIONS as readonly string[]).includes(auth[1])) {
+        const body = req.method === "POST" ? await readJson(req) : undefined;
+        const reply = await handleAuth({ action: auth[1], method: req.method ?? "GET", body, cookie: req.headers.cookie }, base.env ?? process.env, base.fetch);
+        if (reply.cookie) res.setHeader("Set-Cookie", reply.cookie);
+        return send(reply.status, reply.body);
       }
       const file = req.method === "GET" ? staticFile(url) : null;
       if (file) {
