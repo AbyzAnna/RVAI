@@ -117,7 +117,7 @@ async function send(raw, { retry = false } = {}) {
   if (!retry) { addMessage('user', text); $('message-input').value = ''; }
   setQuick([]);
   const intent = CRACK_RE.test(text) ? null : rebuildIntent(text);
-  if (intent) return startRebuild(intent.target || contextTarget());
+  if (intent) return startRebuild(intent.target || contextTarget(), intent.notes);
   if (liveMode()) return sendLive(text);
   if (dataError) return bot(`The catalog could not be loaded (${dataError}), so the scripted demo cannot search. Serve the repository root over HTTP and reload the page.`, { error: true, tag: 'Catalog error', log: false });
   if (CRACK_RE.test(text)) return bot('I can’t help crack software, bypass licensing or activation, or find pirated copies. I can help you find a free or open alternative, extend an open project, or plan an original tool that does what you need. What do you want to be able to do?',
@@ -132,13 +132,13 @@ function contextTarget() {
   for (const m of [...state.messages].reverse()) if (m.role === 'user') { const t = targetFrom(m.content); if (t) return t; }
   return '';
 }
-function startRebuild(target) {
+function startRebuild(target, notes = '') {
   const holder = el('div', { class: 'rebuild-inline' });
   bot(target
-    ? `Let’s build your own version of ${target}. Agents are researching it now. Then pick the features and mods you want, the AI model and your system, and you’ll get one file to download.`
+    ? `Let’s build your own version of ${target}${notes ? ` (${notes})` : ''}. Agents are researching it now. Then pick the features and mods you want, the AI model and your system, and you’ll get one file to download.`
     : 'Let’s build your own version. Type the app or website it should be like, and agents will research it. Then pick features and mods, the AI model and your system, and you’ll get one file to download.',
   { tag: 'RVAI · Rebuild an app', extras: [holder] });
-  mountRebuild(holder, { app: target, onFile: f => { state.messages.push({ role: 'assistant', content: `Built ${f.displayTitle} as ${f.filename}.` }); } });
+  mountRebuild(holder, { app: target, notes, onFile: f => { state.messages.push({ role: 'assistant', content: `Built ${f.displayTitle} as ${f.filename}.` }); } });
 }
 
 // ---------- live adapter (proposed 0.2-draft envelope; not an implemented backend contract) ----------
