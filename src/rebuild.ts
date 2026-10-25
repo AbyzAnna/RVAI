@@ -1,9 +1,11 @@
+import { Script } from "node:vm";
 import { z } from "zod";
 import { scanForInjection } from "./agents/index.js";
 import { checkUrlLoads, type UrlCheck } from "./discover.js";
 import { auditOutput, checkRequest, isSafeUrl, REFUSAL_PREFIX, SYSTEM_RULES } from "./guardrails.js";
 import { completeJson, completeText, hasApiCredentials, hasOpenRouterKey, type MessagesClient, type Provider } from "./llm.js";
 import { runStep, type TraceEntry } from "./orchestrator.js";
+import { gameConfig, GameDesign, gameHtml, isBlockGame } from "./game-engine.js";
 import { htmlTemplate, notice, osName, pythonTemplate, runInstructions, type Format } from "./rebuild-templates.js";
 
 /**
@@ -139,11 +141,63 @@ function refuse(query: string, reason: string): { result: RebuildRefusal; trace:
   };
 }
 
+export const RESEARCH_AGENTS = ["product-profiler", "feature-mapper", "stack-detective"] as const;
+export type ResearchAgent = (typeof RESEARCH_AGENTS)[number];
+const AGENT_SCHEMAS = { "product-profiler": Profiler, "feature-mapper": FeatureList, "stack-detective": Stack } as const;
+
+function agentStep(agent: ResearchAgent, query: string, p: Provider, opts: RebuildOptions) {
+  const ask = <S extends z.ZodType>(schema: S, name: string, task: string) =>
+    completeJson(schema, name, `You are one of RVAI's research agents.\n${PUBLIC_ONLY}`, `App or website: "${query}"\n\n${task}`, llm(p, RESEARCH_MODEL, opts, 3000));
+  const steps = {
+    "product-profiler": {
+      name: agent,
+      schema: Profiler,
+      label: p,
+      retries: 1,
+      primary: () => ask(Profiler, "profile", "Identify the product: its official name, official homepage, category, a short summary and its audience."),
+      fallback: { run: () => ({ known: false, officialName: query, officialUrl: null, category: "app", summary: "", audience: "" }), label: "unknown product" },
+    },
+    "feature-mapper": {
+      name: agent,
+      schema: FeatureList,
+      label: p,
+      retries: 1,
+      primary: () => ask(FeatureList, "features", "List 8 to 12 user-visible features, as a user would describe them. Mark the 4 to 6 that define the product as core. Keep each label under 6 words."),
+      fallback: { run: () => ({ features: fallbackProfile(query).features }), label: "generic features" },
+    },
+    "stack-detective": {
+      name: agent,
+      schema: Stack,
+      label: p,
+      primary: () => ask(Stack, "stack", "Give its likely tech stack from public signals only: job posts, engineering blogs, open-source repos it publishes, the type of app it ships (web, Electron, native). At most 6 items, each 1 to 3 words (e.g. \"Java\", \"OpenGL\"). Say what each guess is based on."),
+      fallback: { run: () => ({ likely: [], signals: [], confidence: "low" as const }), label: "no stack guess" },
+    },
+  };
+  return steps[agent] as unknown as Parameters<typeof runStep<unknown>>[0];
+}
+
+/** Runs one research agent on its own, so the page can run all three side by side and show each finish. */
+export async function researchAgent(rawQuery: string, agent: string, opts: RebuildOptions = {}): Promise<{ result: unknown; trace: TraceEntry[] } | { result: RebuildRefusal; trace: TraceEntry[] }> {
+  const query = clip(rawQuery, 80);
+  if (!(RESEARCH_AGENTS as readonly string[]).includes(agent)) throw new Error(`unknown agent: ${agent}`);
+  const guard = checkRequest(query);
+  if (!guard.allowed) return refuse(query, guard.reason!);
+  const p = scanForInjection(query).length ? null : provider(opts);
+  const trace: TraceEntry[] = [];
+  if (!p) return { result: null, trace: [{ step: agent, status: "fallback", ms: 0, detail: "no AI model" }] };
+  const result = await runStep(agentStep(agent as ResearchAgent, query, p, opts), trace);
+  return { result, trace };
+}
+
 /**
  * Research: three agents run in parallel (Product Profiler, Feature Mapper, Stack Detective), then
  * the Link Checker confirms the official site loads. Each agent's output is schema-checked.
  */
-export async function researchApp(rawQuery: string, opts: RebuildOptions = {}): Promise<{ result: AppProfile | RebuildRefusal; trace: TraceEntry[] }> {
+export async function researchApp(
+  rawQuery: string,
+  opts: RebuildOptions = {},
+  parts?: Partial<Record<ResearchAgent, unknown>>,
+): Promise<{ result: AppProfile | RebuildRefusal; trace: TraceEntry[] }> {
   const query = clip(rawQuery, 80);
   const guard = checkRequest(query);
   if (!guard.allowed) return refuse(query, guard.reason!);
@@ -155,46 +209,25 @@ export async function researchApp(rawQuery: string, opts: RebuildOptions = {}): 
     return { result: fallbackProfile(query), trace };
   }
 
-  const ask = <S extends z.ZodType>(schema: S, name: string, task: string) =>
-    completeJson(schema, name, `You are one of RVAI's research agents.\n${PUBLIC_ONLY}`, `App or website: "${query}"\n\n${task}`, llm(p, RESEARCH_MODEL, opts, 3000));
-
+  // Each agent's result can come from the browser (it ran it on its own via /api/rebuild/agent, so the person
+  // could watch it finish) or be run here; either way it is checked against its schema.
   const traces: TraceEntry[][] = [[], [], []];
-  const [profile, features, stack] = await Promise.all([
-    runStep({
-        name: "product-profiler",
-        schema: Profiler,
-        label: p,
-        retries: 1,
-        primary: () => ask(Profiler, "profile", "Identify the product: its official name, official homepage, category, a short summary and its audience."),
-        fallback: { run: () => ({ known: false, officialName: query, officialUrl: null, category: "app", summary: "", audience: "" }), label: "unknown product" },
-      },
-      traces[0],
-    ),
-    runStep(
-      {
-        name: "feature-mapper",
-        schema: FeatureList,
-        label: p,
-        retries: 1,
-        primary: () => ask(FeatureList, "features", "List 8 to 12 user-visible features, as a user would describe them. Mark the 4 to 6 that define the product as core. Keep each label under 6 words."),
-        fallback: { run: () => ({ features: fallbackProfile(query).features }), label: "generic features" },
-      },
-      traces[1],
-    ),
-    runStep(
-      {
-        name: "stack-detective",
-        schema: Stack,
-        label: p,
-        primary: () => ask(Stack, "stack", "Give its likely tech stack from public signals only: job posts, engineering blogs, open-source repos it publishes, the type of app it ships (web, Electron, native). At most 6 items, each 1 to 3 words (e.g. \"Java\", \"OpenGL\"). Say what each guess is based on."),
-        fallback: { run: () => ({ likely: [], signals: [], confidence: "low" as const }), label: "no stack guess" },
-      },
-      traces[2],
-    ),
-  ]).catch((err) => {
+  const [profile, features, stack] = await Promise.all(
+    RESEARCH_AGENTS.map((agent, i) => {
+      const given = parts?.[agent];
+      if (given !== undefined) {
+        const parsed = AGENT_SCHEMAS[agent].safeParse(given);
+        if (parsed.success) {
+          traces[i].push({ step: agent, status: "ok", ms: 0, detail: "ran in parallel" });
+          return Promise.resolve(parsed.data);
+        }
+      }
+      return runStep(agentStep(agent, query, p, opts), traces[i]);
+    }),
+  ).catch((err) => {
     trace.push(...traces.flat());
     throw err;
-  });
+  }) as [z.infer<typeof Profiler>, z.infer<typeof FeatureList>, z.infer<typeof Stack>];
   trace.push(...traces.flat());
 
   // Only show the official link if it is a safe https link that actually loads.
@@ -266,6 +299,8 @@ export interface BuiltFile {
   bytes: number;
   instructions: string[];
   source: "ai" | "template";
+  /** Set when the file is built on RVAI's tested game engine instead of written from scratch. */
+  engine: "rvai-blocks" | null;
   model: string | null;
 }
 
@@ -287,6 +322,20 @@ export function extractFile(reply: string, format: Format): string {
   return text.trim() + "\n";
 }
 
+/** Compiles every inline classic script without running it, and returns the syntax errors. */
+export function scriptErrors(html: string): string[] {
+  const errors: string[] = [];
+  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (/\bsrc\s*=/i.test(m[1]) || /type\s*=\s*["']?(module|application\/json|text\/template)/i.test(m[1])) continue;
+    try {
+      new Script(m[2]);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+  return errors;
+}
+
 /** Checks a generated file is complete, self-contained and clean. Empty means it passed. */
 export function checkFile(content: string, format: Format): string[] {
   const problems: string[] = [];
@@ -296,6 +345,8 @@ export function checkFile(content: string, format: Format): string[] {
     if (!/<\/html>\s*$/i.test(content)) problems.push("is cut off before </html>");
     if (!/<script\b/i.test(content)) problems.push("has no script, so nothing would work");
     if (EXTERNAL_RESOURCE.test(content)) problems.push("loads files from the internet, so it isn't one self-contained file");
+    const broken = scriptErrors(content);
+    if (broken.length) problems.push(`has a script error (${broken[0]})`);
   } else {
     if (!/if __name__ == ["']__main__["']/.test(content)) problems.push("has no main entry point");
     if (THIRD_PARTY_PY.test(content)) problems.push("needs packages outside the Python standard library");
@@ -400,7 +451,7 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
           "naming",
           `You name original apps. The name must be new: not the original product's name, not a near copy of it, and not another company's trademark.\n${SYSTEM_RULES}`,
           `Name an original ${req.category} app with these features: ${features.map((f) => f.label).join(", ")}. It is a free alternative to ${target}. One or two words.`,
-          llm(p!, NAMER_MODEL, opts, 300),
+          llm(p!, NAMER_MODEL, opts, 1500),
         ),
       fallback: { run: () => ({ appName: "", tagline: "" }), label: "default name" },
       ...(p ? {} : { skipPrimary: skip }),
@@ -413,36 +464,78 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
   const filename = filenameFor(appName, target, format);
   const instructions = runInstructions(format, req.system.os, req.system.arch, filename);
 
-  const { system, user } = builderPrompt({ ...req, target, features }, appName);
-  const template = () => (format === "html" ? htmlTemplate : pythonTemplate)({ appName, target, summary: clip(req.summary, 200), features: features.map(({ label, description }) => ({ label, description })) });
   let source: BuiltFile["source"] = "ai";
+  let engine: BuiltFile["engine"] = null;
   const deadline = Date.now() + (opts.budgetMs ?? 250_000);
-  const content = await runStep(
-    {
-      name: "app-builder",
-      schema: z.string(),
-      label: p ? model : undefined,
-      retries: 1,
-      primary: async () => {
-        // Stay inside the hosting time limit: a retry only runs if there is still room for it.
-        const left = deadline - Date.now();
-        if (left < 45_000) throw new Error("out of time for another try");
-        const file = extractFile(await completeText(system, user, { ...llm(p!, model, opts, 16000), timeoutMs: Math.min(180_000, left) }), format);
-        const problems = checkFile(file, format);
-        if (problems.length) throw new Error(`file check: ${problems.join(", ")}`);
-        return file;
+  let content: string;
+
+  if (format === "html" && isBlockGame([target, req.category, req.summary].join(" "))) {
+    // Games use RVAI's tested engine, so the file always loads and plays; the chosen model designs the game.
+    engine = "rvai-blocks";
+    const design = await runStep(
+      {
+        name: "game-designer",
+        schema: GameDesign.partial(),
+        label: p ? model : undefined,
+        retries: 1,
+        primary: () =>
+          completeJson(
+            GameDesign,
+            "game_design",
+            `You design original block-building games for RVAI's game engine. Use your own block names and colors, never the original game's names, characters or art.\n${SYSTEM_RULES}`,
+            `Design "${appName}", a free 2D block-building game that is an alternative to ${target}.
+Features the person picked:\n${features.map((f) => `- ${f.label}${f.custom ? " (mod)" : ""}`).join("\n")}
+${req.notes ? `They also said: ${req.notes}. Follow it, especially colors and themes.\n` : ""}Turn on the systems that match their features and mods (for example low-spec for old laptops, co-op for playing with friends).`,
+            llm(p!, model, opts, 4000),
+          ),
+        fallback: { run: () => ({}), label: "default design" },
+        ...(p ? {} : { skipPrimary: skip }),
       },
-      fallback: {
-        label: "offline template",
-        run: () => {
-          source = "template";
-          return template();
+      trace,
+    );
+    if (!p) source = "template";
+    const lowSpec = mods.some((m) => /low[- ]?spec|old (laptop|pc|computer)|potato|performance/i.test(m)) || undefined;
+    const coop = mods.some((m) => /co-?op|multiplayer|friend|lan|2 ?player|two player/i.test(m)) || undefined;
+    content = gameHtml(gameConfig({ title, storageKey: `rvai:${slug(appName)}`, mods, design: { ...design, ...(lowSpec ? { lowSpec } : {}), ...(coop ? { coop } : {}) } }));
+    const started = Date.now();
+    const problems = checkFile(content, format);
+    trace.push({ step: "file-checker", status: problems.length ? "failed" : "ok", ms: Date.now() - started, detail: problems.length ? problems.join(", ") : "scripts compile, self-contained" });
+  } else {
+    const { system, user } = builderPrompt({ ...req, target, features }, appName);
+    const template = () => (format === "html" ? htmlTemplate : pythonTemplate)({ appName, target, summary: clip(req.summary, 200), features: features.map(({ label, description }) => ({ label, description })) });
+    let lastProblem = "";
+    content = await runStep(
+      {
+        name: "app-builder",
+        schema: z.string(),
+        label: p ? model : undefined,
+        retries: 1,
+        primary: async () => {
+          // Stay inside the hosting time limit: a retry only runs if there is still room for it.
+          const left = deadline - Date.now();
+          if (left < 45_000) throw new Error("out of time for another try");
+          // On the retry, tell the model what was wrong with its first file so it can avoid it.
+          const ask = lastProblem ? `${user}\n\nYour previous attempt was rejected because it ${lastProblem}. Write the whole file again and check every variable name is declared only once.` : user;
+          const file = extractFile(await completeText(system, ask, { ...llm(p!, model, opts, 16000), timeoutMs: Math.min(180_000, left) }), format);
+          const problems = checkFile(file, format);
+          if (problems.length) {
+            lastProblem = problems.join(", ");
+            throw new Error(`file check: ${lastProblem}`);
+          }
+          return file;
         },
+        fallback: {
+          label: "offline template",
+          run: () => {
+            source = "template";
+            return template();
+          },
+        },
+        ...(p ? {} : { skipPrimary: skip }),
       },
-      ...(p ? {} : { skipPrimary: skip }),
-    },
-    trace,
-  );
+      trace,
+    );
+  }
 
   const final = withNotice(withTitle(content, format, title), format, notice(title, target, instructions));
   return {
@@ -458,6 +551,7 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
       bytes: Buffer.byteLength(final),
       instructions,
       source,
+      engine,
       model: source === "ai" ? model : null,
     },
     trace,

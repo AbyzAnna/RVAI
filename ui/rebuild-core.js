@@ -74,18 +74,23 @@ const BUILD_INTENT = [
   SHORT_BUILD,
 ];
 
+const MAKING_WITH = /\blike in\b|\b(in|with|using)\s+(unity|unreal|godot|gamemaker|game maker|blender|photoshop|figma|excel|scratch|roblox studio)\b|\bmy first\b|\blearn(ing)? to\b/i;
+const STRONG_INTENT = [/\bcreate something new\b/i, /\bbuild it for me\b/i, /\b(re-?build|reverse[- ]engineer)\b/i, SHORT_BUILD];
+
 /** Pulls the product name out of "like X", "similar to X", "version of X"; null for "it"/"that". */
 export function targetFrom(text) {
   const m = String(text).match(/\b(?:similar to|alternative to|version of|copy of|clone of|based on|inspired by|reverse[- ]engineer|rebuild|like)\s+(?:the\s+)?([A-Za-z0-9][\w.+'&-]*(?:\s+[A-Z0-9][\w.+'&-]*){0,3})/);
   if (!m) return null;
   const name = m[1].replace(/[.!?,]+$/, '').trim();
-  return name && !PRONOUN.test(name) && !/^(in|a|an|to|for|with)$/i.test(name) ? name : null;
+  return name && !PRONOUN.test(name) && !/^(in|a|an|to|for|with)\b/i.test(name) ? name : null;
 }
 
 /** Does this message ask RVAI to make the app (not just find one)? Returns {target} (target may be null) or null. */
 export function rebuildIntent(text) {
   const t = String(text);
   if (!BUILD_INTENT.some(re => re.test(t))) return null;
+  // "make my first game like in Unity" asks for a tool to make things with: that's a recommendation, not a rebuild.
+  if (MAKING_WITH.test(t) && !STRONG_INTENT.some(re => re.test(t))) return null;
   // Whatever follows "create it" is a wish for the file, e.g. "with blue themed background".
   const notes = (SHORT_BUILD.exec(t)?.[1] || '').replace(/^(please|for me)\b[\s,]*/i, '').trim();
   return notes ? { target: targetFrom(t), notes } : { target: targetFrom(t) };

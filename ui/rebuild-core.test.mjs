@@ -31,6 +31,9 @@ test('spots requests to build the app and finds the product name', async () => {
   assert.equal(rebuildIntent('I need something like Photoshop for my Linux laptop'), null);
   assert.equal(rebuildIntent('Free replacement for Microsoft Office on my Mac'), null);
   assert.equal(targetFrom('similar to it'), null);
+  assert.equal(rebuildIntent('I want to make my first 2D game like in Unity, I\'m a beginner'), null);
+  assert.equal(rebuildIntent('I want to make a game in Godot like Celeste'), null);
+  assert.deepEqual(rebuildIntent('make my own version of Minecraft'), { target: 'Minecraft' });
   assert.deepEqual(rebuildIntent('create it with blue themed background'), { target: null, notes: 'with blue themed background' });
   assert.deepEqual(rebuildIntent('ok build it'), { target: null });
   assert.deepEqual(rebuildIntent('Can you make me one, dark mode please'), { target: null, notes: 'dark mode please' });
