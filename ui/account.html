@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><meta name="theme-color" content="#010402"><title>RVAI — Log in or sign up</title><link rel="stylesheet" href="styles.css"></head>
+<body class="account-page">
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute;overflow:hidden">
+<defs><linearGradient id="mark-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f5c49"/><stop offset=".55" stop-color="#0b2b26"/><stop offset="1" stop-color="#050608"/></linearGradient><linearGradient id="mark-orbit" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1fbf71" stop-opacity=".25"/><stop offset=".5" stop-color="#9fe8c3"/><stop offset="1" stop-color="#1fbf71"/></linearGradient></defs>
+<symbol id="rvai-mark" viewBox="0 0 48 48"><title>RVAI</title><rect x="1" y="1" width="46" height="46" rx="14" fill="url(#mark-bg)"/><rect x="1.5" y="1.5" width="45" height="45" rx="13.5" fill="none" stroke="#1fbf71" stroke-opacity=".45"/><g class="mark-orbit"><g transform="rotate(-28 24 24)"><ellipse cx="24" cy="24" rx="20" ry="7.5" fill="none" stroke="url(#mark-orbit)" stroke-width="1.6"/><circle cx="44" cy="24" r="2.6" fill="#1fbf71"/><circle cx="4" cy="24" r="1.6" fill="#9fe8c3"/></g></g><path d="M17 34V14h8a5.5 5.5 0 0 1 0 11h-8M23 25l8 9" fill="none" stroke="#f2fbf6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><g fill="#9fe8c3"><circle cx="17" cy="14" r="2.3"/><circle cx="17" cy="34" r="2.3"/><circle cx="30.5" cy="19.5" r="2.3"/></g><circle cx="31" cy="34" r="2.3" fill="#1fbf71"/></symbol>
+</svg>
+<main class="account-card start-dialog" aria-labelledby="account-title">
+  <a class="account-back" href="./#about">← Back to RVAI</a>
+  <svg class="rvai-mark dialog-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><use href="#rvai-mark"/></svg>
+  <section id="account-forms">
+    <div class="account-tabs" role="tablist" aria-label="Account">
+      <button type="button" role="tab" id="tab-login" data-mode="login" aria-controls="auth-form">Log in</button>
+      <button type="button" role="tab" id="tab-signup" data-mode="signup" aria-controls="auth-form">Sign up</button>
+    </div>
+    <h1 id="account-title">Log in to RVAI</h1>
+    <p id="account-lead" class="fine">Welcome back. Your workspace shows your name once you're in.</p>
+    <form id="auth-form" class="signup-form" novalidate>
+      <label for="auth-name" data-signup-only>Name</label>
+      <input id="auth-name" name="name" type="text" autocomplete="name" maxlength="60" data-signup-only>
+      <label for="auth-email">Email</label>
+      <input id="auth-email" name="email" type="email" autocomplete="email" required>
+      <label for="auth-password">Password <small data-signup-only>(at least 8 characters)</small></label>
+      <input id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8">
+      <p id="auth-error" class="fine error-text" role="alert" hidden></p>
+      <button id="auth-submit" type="submit" class="btn-primary">Log in</button>
+    </form>
+    <p class="fine center" id="account-switch"></p>
+  </section>
+  <section id="account-signed-in" hidden>
+    <span class="eyebrow">SIGNED IN</span>
+    <h1 id="signed-in-name">You're signed in</h1>
+    <p id="signed-in-email" class="fine"></p>
+    <div class="account-actions"><a class="btn-primary btn-accent" href="./#innovate">Open your workspace</a><button type="button" id="account-logout" class="btn-secondary">Log out</button></div>
+  </section>
+</main>
+<script type="module" src="account.js"></script>
+</body></html>

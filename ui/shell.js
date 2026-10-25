@@ -1,8 +1,8 @@
 // RVAI global shell: four hash-routed sections (About / Alternatives / Innovate / RVAI OpenSource),
 // prototype sign-up + preview-demo gate, try-Innovate-first shortcut, service chooser, third-party catalog
 // page, Innovate handoff and decorative motion (reveal, hero tilt). The 0/1 rain lives in matrix-rain.js.
-// UI-only: no accounts, no storage, no network beyond reading the static catalog files. Real sign-up,
-// authorization and search belong to Anna's backend. Talks to app.js only through existing element IDs.
+// Accounts: the signed-in user (from /api/auth/me, see auth-client.js) shows in the header and sidebar; the
+// sign-up and log-in forms live on account.html. No other storage; search and the agent belong to the backend. Talks to app.js only through existing element IDs.
 export const ROUTES = ['about', 'alternatives', 'innovate', 'opensource'];
 const TITLES = { about: 'Home', alternatives: 'Find software', innovate: 'Build with AI', opensource: 'RVAI OpenSource' };
 const GATED = new Set(['alternatives', 'innovate']);
@@ -62,9 +62,10 @@ export function fromSeedCatalog(seed, reviewed = []) {
 // Category label is included so app.js keyword routing recognizes the goal (e.g. "3d cad", "video edit").
 export const handoffPrompt = (item, catLabel) => `I want to start from ${item.name} (${catLabel.toLowerCase()}, ${item.license}) and customize it so that: `;
 
-if (typeof document !== 'undefined') init();
+// auth-client.js loads only in the browser, so node tests can import this file from a data: URL.
+if (typeof document !== 'undefined') import('./auth-client.js').then(init);
 
-function init() {
+function init({ authRequest, currentUser, displayName }) {
   const $ = id => document.getElementById(id);
   const el = (tag, props = {}, ...kids) => {
     const n = document.createElement(tag);
@@ -316,10 +317,29 @@ function init() {
     hero.addEventListener('pointerleave', () => { canvas.style.setProperty('--tx', 0); canvas.style.setProperty('--ty', 0); });
   }
 
+  // ---------- account: header link + sidebar profile ----------
+  function renderAccount(user) {
+    const name = displayName(user);
+    $('profile-name').textContent = user ? name : 'Demo workspace';
+    $('profile-detail').textContent = user ? user.email : 'No account · preview only';
+    $('profile-signed-out').hidden = Boolean(user);
+    $('profile-signed-in').hidden = !user;
+    $('workspace-owner').textContent = user ? `/ ${name}’s workspace` : '/ Demo workspace';
+    $('gnav-account').textContent = user ? name : 'Log in';
+    $('gnav-account').href = user ? 'account.html' : 'account.html#login';
+    $('demo-status').hidden = Boolean(user);
+  }
+  $('profile-logout').addEventListener('click', async () => {
+    await authRequest('logout').catch(() => {});
+    renderAccount(null);
+  });
+
   // ---------- boot: fresh URL (no hash) lands on About ----------
   initMotion();
   renderCatalog();
   loadCatalog();
   activateDemo('preview'); // no accounts yet: open everything in preview mode, no sign-up dialog
+  renderAccount(null);
+  currentUser().then(renderAccount);
   if (location.hash) onHash(false); else show('about', false);
 }
