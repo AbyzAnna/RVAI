@@ -62,6 +62,8 @@ export function downloadSpec(file) {
 
 // ---------- chat hand-off ----------
 const PRONOUN = /^(it|this|that|them|those|these|one|the same|something|anything|me|my)$/i;
+// "create it with a blue background", "build that", "make me one": a follow-up about the product in context.
+const SHORT_BUILD = /^\s*(?:(?:ok(?:ay)?|yes|now|please|can you|could you|i want you to|let'?s)[,\s]+)*(?:create|build|make|code|generate)\s+(?:me\s+)?(?:it|this|that|one|this one|that one|the app|a copy|my version)\b[\s,:-]*(.*)$/i;
 const BUILD_INTENT = [
   /\bcreate something new\b/i,
   /\bbuild it for me\b/i,
@@ -69,6 +71,7 @@ const BUILD_INTENT = [
   /\b(my own|a new|an original)\s+(version|app|application|game|tool|program|website|site|clone|copy)\b/i,
   /\b(create|make|build|code|develop|write)\b.{0,40}\b(similar to|like|version of|copy of|clone of|based on|inspired by)\b/i,
   /\b(create|make|build|code|develop|write)\b.{0,30}\b(new|own)\b.{0,20}\b(app|application|game|tool|program|website|site|version)\b/i,
+  SHORT_BUILD,
 ];
 
 /** Pulls the product name out of "like X", "similar to X", "version of X"; null for "it"/"that". */
@@ -83,5 +86,7 @@ export function targetFrom(text) {
 export function rebuildIntent(text) {
   const t = String(text);
   if (!BUILD_INTENT.some(re => re.test(t))) return null;
-  return { target: targetFrom(t) };
+  // Whatever follows "create it" is a wish for the file, e.g. "with blue themed background".
+  const notes = (SHORT_BUILD.exec(t)?.[1] || '').replace(/^(please|for me)\b[\s,]*/i, '').trim();
+  return notes ? { target: targetFrom(t), notes } : { target: targetFrom(t) };
 }

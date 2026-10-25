@@ -25,12 +25,12 @@ const previewDoc = html => /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>
 
 const TEMPLATE = `
 <section class="rb-card" data-part="step-search"><h2><span class="rb-step">1</span>Which app or website?</h2><p class="rb-sub">Type its name. Agents research its official site, docs and reviews in parallel.</p>
-<form class="rb-search" data-part="search-form"><label class="sr-only">App or website name<input data-part="app-name" maxlength="80" placeholder="e.g. Notion, Minecraft, Trello, Duolingo" autocomplete="off" required></label><button class="btn-primary btn-accent big" data-part="research-btn">Research it</button></form>
+<form class="rb-search" data-part="search-form"><input data-part="app-name" aria-label="App or website name" maxlength="80" placeholder="e.g. Notion, Minecraft, Trello, Duolingo" autocomplete="off" required><button class="btn-primary btn-accent big" data-part="research-btn">Research it</button></form>
 <div class="rb-chips" data-part="examples"></div><p class="err" data-part="search-err" role="alert"></p></section>
 <section class="rb-card" data-part="step-agents" hidden><h2>Agents at work</h2><p class="rb-sub" data-part="agents-sub">Running side by side.</p><div class="agents" data-part="agents"></div></section>
 <section class="rb-card" data-part="step-profile" hidden></section>
 <section class="rb-card" data-part="step-features" hidden><h2><span class="rb-step">2</span>Which features do you want?</h2><p class="rb-sub">Core features are ticked. Add your own ideas as mods.</p><div class="feat-grid" data-part="features"></div>
-<form class="mod-row" data-part="mod-form"><label class="sr-only">Add a mod<input data-part="mod-input" maxlength="80" placeholder="Add a mod: e.g. Pomodoro timer, co-op on LAN, low-spec mode"></label><button class="btn-secondary">Add mod</button></form><div class="rb-chips" data-part="mods"></div></section>
+<form class="mod-row" data-part="mod-form"><input data-part="mod-input" aria-label="Add a mod" maxlength="80" placeholder="Add a mod: e.g. Pomodoro timer, co-op on LAN, low-spec mode"><button class="btn-secondary">Add mod</button></form><div class="rb-chips" data-part="mods"></div></section>
 <section class="rb-card" data-part="step-setup" hidden><h2><span class="rb-step">3</span>A few questions</h2><p class="rb-sub">So the file runs on your computer.</p>
 <div class="q"><span>Which AI model should build it?</span><div class="opt-grid" data-part="models"></div></div>
 <div class="q"><span>Your system <em class="chip ok" data-part="detected">auto-detected</em></span><div class="opt-grid" data-part="os"></div></div>
@@ -64,8 +64,8 @@ async function post(url, body) {
   return data;
 }
 
-/** Draws the flow in `root`. With `app`, research starts right away. `onFile(file)` is told when a file is ready. */
-export async function mountRebuild(root, { app = '', onFile } = {}) {
+/** Draws the flow in `root`. With `app`, research starts right away; `notes` pre-fills "Anything else?". `onFile(file)` is told when a file is ready. */
+export async function mountRebuild(root, { app = '', notes = '', onFile } = {}) {
   const id = ++mounts;
   root.classList.add('rb-flow');
   root.innerHTML = TEMPLATE;
@@ -208,5 +208,6 @@ export async function mountRebuild(root, { app = '', onFile } = {}) {
   await loadModels();
   Object.assign(state, await detect());
   state.model = models[0].id;
+  if (notes) $('notes').value = String(notes).slice(0, 500);
   if (app) { $('app-name').value = String(app).slice(0, 80); $('search-form').requestSubmit(); }
 }
