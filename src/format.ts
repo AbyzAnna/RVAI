@@ -46,10 +46,15 @@ export function formatResult(result: Recommendation | Refusal): string {
     out.push("  Clean-room rules:", ...b.cleanRoomRules.map((s) => `    - ${s}`));
     out.push("");
   }
+  if (result.threats?.items.length) {
+    out.push("Threats and risks", `  ${result.threats.summary}`);
+    for (const t of result.threats.items) out.push(`  - [${t.severity}] ${t.subject} (${t.kind}): ${t.detail} ${t.advice}`);
+    out.push("");
+  }
   out.push(result.attribution);
   return out.join("\n");
 }
 
 export function formatTrace(trace: TraceEntry[]): string {
-  return trace.map((t) => `  ${t.step.padEnd(13)} ${t.status.padEnd(8)} ${String(t.ms).padStart(5)}ms${t.detail ? `  ${t.detail}` : ""}`).join("\n");
+  return trace.map((t) => `  ${t.step.padEnd(18)} ${t.status.padEnd(8)} ${String(t.ms).padStart(5)}ms${t.detail ? `  ${t.detail}` : ""}`).join("\n");
 }

@@ -86,7 +86,10 @@ export function fromRecommend(data) {
     target ? `Free alternatives to ${target}${live ? ' (found live, not reviewed by a person)' : ''}:` : `Free alternatives${live ? ' (found live, not reviewed by a person)' : ''}:`,
     ...(r.picks.length ? r.picks.map(p => `${p.rank}. ${p.name} — ${pct(p.mustHaveCoverage)} of must-haves, ${p.license}${p.platformMatch ? '' : ', platform not confirmed'}`) : ['No free alternative matched this request.']),
     discounts.length ? `\nOfficial discounts on the original:\n${discounts.map(d => `• ${d}`).join('\n')}` : null,
-    r.buildPlan ? `\nNothing free covers enough of what you need, so there’s a plan for an original tool in the Plan tab.\n${r.buildPlan.reason}` : null
+    r.buildPlan ? `\nNothing free covers enough of what you need, so there’s a plan for an original tool in the Plan tab.\n${r.buildPlan.reason}` : null,
+    Array.isArray(r.threats?.items) && r.threats.items.length
+      ? `\nThreats and risks (${r.threats.summary}):\n${r.threats.items.slice(0, 5).map(t => `• [${t.severity}] ${t.subject}: ${t.detail} ${t.advice}`).join('\n')}`
+      : null
   ].filter(v => v != null);
   return {
     stage: live ? 'discovered' : 'recommended',

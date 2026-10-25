@@ -73,7 +73,7 @@ describe("live discovery", () => {
       { stop_reason: "end_turn", parsed_output: discovery },
     ]);
     const { result, trace } = await run("edit and sign PDFs like Acrobat", { client, urlCheck });
-    expect(trace.map((t) => t.step)).toEqual(["guard-input", "analyze", "discover", "compare", "recommend", "guard-output"]);
+    expect(trace.map((t) => t.step)).toEqual(["guard-input", "goal-analyzer", "alternative-finder", "gap-comparator", "threat-risk", "synthesizer", "guard-output"]);
     const rec = result as Recommendation;
     expect(rec.source).toBe("discovered");
     expect(rec.picks[0].name).toBe("Good PDF");
@@ -84,16 +84,16 @@ describe("live discovery", () => {
     const goal = { targetProductId: null, category: "other", tasks: ["x"], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false };
     const client = fakeClient([{ stop_reason: "end_turn", parsed_output: goal }, new Error("overloaded")]);
     const { result, trace } = await run("something nobody has heard of", { client, urlCheck });
-    expect(trace[2]).toMatchObject({ step: "discover", status: "fallback" });
+    expect(trace[2]).toMatchObject({ step: "alternative-finder", status: "fallback" });
     expect((result as Recommendation).source).toBe("catalog");
     expect((result as Recommendation).buildPlan).not.toBeNull();
   });
 
   it("is skipped offline and when turned off", async () => {
     const offline = await run("edit PDFs like Acrobat", { offline: true });
-    expect(offline.trace.map((t) => t.step)).not.toContain("discover");
+    expect(offline.trace[2]).toMatchObject({ step: "alternative-finder", detail: "catalog" });
     const client = fakeClient([{ stop_reason: "end_turn", parsed_output: { targetProductId: null, category: "other", tasks: [], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false } }]);
     const off = await run("edit PDFs like Acrobat", { client, discover: false });
-    expect(off.trace.map((t) => t.step)).not.toContain("discover");
+    expect(off.trace[2]).toMatchObject({ step: "alternative-finder", detail: "catalog" });
   });
 });

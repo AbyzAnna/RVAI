@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import { createServer as createHttpServer, type IncomingMessage, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
+import { AGENTS } from "./agents/index.js";
 import { pickProvider } from "./llm.js";
 import { run, StepError, type RunOptions } from "./orchestrator.js";
 
@@ -73,6 +74,7 @@ export function createServer(base: RunOptions = {}): Server {
         return res.end();
       }
       if (req.method === "GET" && url === "/api/examples") return send(200, { examples: EXAMPLES });
+      if (req.method === "GET" && url === "/api/agents") return send(200, { agents: AGENTS });
       if (req.method === "GET" && url === "/api/health") {
         const env = base.env ?? process.env;
         return send(200, { ok: true, ai: base.offline ? null : pickProvider(env, base.client) });

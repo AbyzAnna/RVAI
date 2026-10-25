@@ -114,8 +114,16 @@ function renderPlan(b) {
   </div>`;
 }
 
+function renderThreats(t) {
+  if (!t || !t.items.length) return "";
+  const sev = { high: "warn", medium: "warn", low: "" };
+  return `<h2>Threats and risks</h2>
+  <div class="card threats"><p><strong>${esc(t.summary)}</strong></p><ul>${t.items.map((i) =>
+    `<li><span class="badge ${sev[i.severity]}">${esc(i.severity)}</span> <strong>${esc(i.subject)}</strong> (${esc(i.kind)}): ${esc(i.detail)} <span class="muted">${esc(i.advice)}</span></li>`).join("")}</ul></div>`;
+}
+
 function renderTrace(trace) {
-  return `<details class="card"><summary>How RVAI got here</summary><table>${trace.map((t) =>
+  return `<details class="card"><summary>How the agents got here</summary><table>${trace.map((t) =>
     `<tr><td>${esc(t.step)}</td><td>${esc(t.status)}</td><td>${t.ms} ms</td><td class="muted">${esc(t.detail ?? "")}</td></tr>`).join("")}</table></details>`;
 }
 
@@ -129,7 +137,7 @@ function render({ result, trace }) {
   const title = result.target ? `Free alternatives to ${esc(result.target.name)}` : "Nothing in our catalog matches yet";
   const found = result.source === "discovered" ? `<div class="notice found">Found live by AI because this isn't in our catalog yet. Each link was checked, but licenses and features weren't reviewed by a person.</div>` : "";
   const discounts = result.discounts.length ? `<h2>Want the original? Official discounts</h2><div class="card"><ul>${result.discounts.map((d) => `<li>${esc(d.name)}: ${esc(d.eligibility)}. ${link(d.url)}</li>`).join("")}</ul></div>` : "";
-  return `<h2>${title}</h2>${found}${result.picks.map(renderPick).join("")}${discounts}${result.buildPlan ? renderPlan(result.buildPlan) : ""}
+  return `<h2>${title}</h2>${found}${result.picks.map(renderPick).join("")}${discounts}${result.buildPlan ? renderPlan(result.buildPlan) : ""}${renderThreats(result.threats)}
     <p class="muted">${esc(result.attribution)}</p>${renderTrace(trace)}`;
 }
 

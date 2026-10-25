@@ -56,7 +56,7 @@ describe("orchestrator with OpenRouter", () => {
   it("uses OpenRouter when only OPENROUTER_API_KEY is set", async () => {
     const fetch = reply(completion(JSON.stringify(goal)));
     const { result, trace } = await run("I need to draw floor plans", { env: { OPENROUTER_API_KEY: "k" }, fetch });
-    expect(trace[1]).toMatchObject({ step: "analyze", status: "ok", detail: "openrouter" });
+    expect(trace[1]).toMatchObject({ step: "goal-analyzer", status: "ok", detail: "openrouter" });
     expect((result as Recommendation).target?.id).toBe("autocad");
   });
 

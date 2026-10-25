@@ -145,6 +145,29 @@ export const BuildPlan = z.object({
 });
 export type BuildPlan = z.infer<typeof BuildPlan>;
 
+// ---------- Threats and risks ----------
+
+export const Severity = z.enum(["low", "medium", "high"]);
+export type Severity = z.infer<typeof Severity>;
+
+export const Threat = z.object({
+  kind: z.enum(["legal-ip", "security", "maintenance", "prompt-injection"]),
+  severity: Severity,
+  // What the threat is about: the request itself, one alternative, or the build plan.
+  scope: z.enum(["request", "alternative", "build-plan"]),
+  subject: z.string(),
+  detail: z.string(),
+  advice: z.string(),
+});
+export type Threat = z.infer<typeof Threat>;
+
+export const ThreatReport = z.object({
+  level: Severity,
+  summary: z.string(),
+  items: z.array(Threat),
+});
+export type ThreatReport = z.infer<typeof ThreatReport>;
+
 export const Recommendation = z.object({
   status: z.literal("ok"),
   query: z.string(),
@@ -154,6 +177,8 @@ export const Recommendation = z.object({
   picks: z.array(Pick),
   discounts: z.array(Discount),
   buildPlan: BuildPlan.nullable(),
+  // Added by the Threat & Risk agent; optional so older callers can still build a Recommendation.
+  threats: ThreatReport.optional(),
   attribution: z.string(),
 });
 export type Recommendation = z.infer<typeof Recommendation>;

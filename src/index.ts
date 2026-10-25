@@ -5,4 +5,5 @@ export { buildRecommendation, BUILD_THRESHOLD, CLEAN_ROOM_RULES } from "./recomm
 export { auditOutput, checkRequest, isSafeUrl } from "./guardrails.js";
 export { loadCatalog } from "./catalog.js";
 export * from "./schemas.js";
+export { AGENTS, assessThreats, scanForInjection } from "./agents/index.js";
 export { formatResult, formatTrace } from "./format.js";
