@@ -12,3 +12,4 @@ __pycache__/
 test-results/
 test-results-deployed/
 playwright-report/
+public/

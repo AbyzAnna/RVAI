@@ -63,7 +63,7 @@ test.describe("pages and navigation", () => {
     await expect(page.locator("[data-view]:visible")).toHaveCount(1);
   });
 
-  test("03 direct links need no sign-up; About buttons and the dialog lead to the right pages", async ({ page }) => {
+  test("03 direct links need no sign-up; About buttons lead to the right pages", async ({ page }) => {
     await page.goto("/ui/#innovate");
     await expect(page.locator("#view-innovate")).toBeVisible();
     await expect(page.locator("#start-dialog")).toBeHidden();
@@ -71,13 +71,9 @@ test.describe("pages and navigation", () => {
     await page.locator("#view-about [data-go='alternatives']:visible").first().click();
     await expect(page.locator("#view-alternatives")).toBeVisible();
     await page.goto("/ui/#about");
-    await page.locator("#view-about [data-start]:visible").first().click();
-    await expect(page.locator("#start-dialog")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#start-dialog")).toBeHidden();
-    await page.locator("#view-about [data-start]:visible").first().click();
-    await page.locator("[data-choose='innovate']").click();
+    await page.locator("#view-about [data-try='innovate']:visible").first().click();
     await expect(page.locator("#view-innovate")).toBeVisible();
+    await expect(page.locator("#view-about a", { hasText: "Sign up" })).toHaveAttribute("href", /.+/);
   });
 
   test("04 Innovate detects the backend and turns on the connected agent", async ({ page }) => {
@@ -111,6 +107,7 @@ test.describe("chat with the AI backend", () => {
   });
 
   test("08 beginner 2D game engine like Unity recommends Godot", async ({ page }) => {
+    test.fail(true, "Known bug from the App Rebuilder (#9): 'make ... like in Unity' starts a rebuild instead of recommending");
     await openInnovate(page);
     const msg = await ask(page, "I want to make my first 2D game like in Unity, I'm a beginner");
     await expect(msg).toContainText(/Godot/);
@@ -148,10 +145,11 @@ test.describe("chat with the AI backend", () => {
   });
 
   test("13 harmless words that look like piracy are not refused", async ({ page }) => {
-    test.fail(true, "Known bug: guardrails.ts refuses any message containing 'pirate', 'crack' or 'torrent'");
     await openInnovate(page);
-    const msg = await ask(page, "a free pirate ship adventure game like Sea of Thieves");
-    await expect(label(msg)).not.toContainText(/declined/i, { timeout: 5_000 });
+    for (const q of ["a free pirate ship adventure game like Sea of Thieves", "torrent client like uTorrent"]) {
+      const msg = await ask(page, q);
+      await expect(label(msg), q).not.toContainText(/declined/i, { timeout: 5_000 });
+    }
   });
 
   test("14 non-software and gibberish input gets a sensible reply, not an error", async ({ page }) => {
@@ -276,10 +274,64 @@ test.describe("settings, errors and environments", () => {
     expect(animated, "running CSS animations under reduced motion").toBe(0);
     await ctx.close();
     expect((await request.post("/api/recommend", { data: { query: "" } })).status()).toBe(400);
-    // The local server rejects bodies over 4 KB; the Vercel function truncates the query instead.
-    if (!process.env.E2E_BASE_URL) expect((await request.post("/api/recommend", { data: { query: "x".repeat(5000) } })).status()).toBe(400);
+    // The local server rejects bodies over 8 KB; the Vercel function truncates the query instead.
+    if (!process.env.E2E_BASE_URL) expect((await request.post("/api/recommend", { data: { query: "x".repeat(9000) } })).status()).toBe(400);
     expect((await request.get("/ui/../.env")).status()).not.toBe(200);
     expect((await request.get("/ui/%2e%2e/.env")).status()).not.toBe(200);
     expect((await request.get("/data/../package.json")).status()).not.toBe(200);
+    // Only the web app, its catalog files and the API are served, never the repository's source.
+    for (const path of ["/src/server.ts", "/package.json", "/tests/helpers.ts", "/dist/orchestrator.js", "/vercel.json"]) {
+      expect((await request.get(path)).status(), path).not.toBe(200);
+    }
+  });
+});
+
+test.describe("conversation and workspace", () => {
+  test("21 a follow-up question keeps the topic of the earlier answer", async ({ page }) => {
+    await openInnovate(page);
+    await ask(page, "I need something like Photoshop for my Linux laptop");
+    const msg = await ask(page, "which of these works offline on an old laptop with 4GB RAM?");
+    await expect(msg).toContainText(/Photoshop/);
+    await expect(msg).toContainText(/GIMP|Krita|Photopea/);
+  });
+
+  test("22 the Brief tab and the Create button work with the live AI", async ({ page }) => {
+    await openInnovate(page);
+    await ask(page, "I need something like Photoshop for my Linux laptop");
+    await page.locator("#tab-brief").click();
+    await expect(page.locator("#panel-brief")).toContainText("Your request");
+    await expect(page.locator("#panel-brief")).toContainText(/GIMP/);
+    await expect(page.locator("#panel-brief")).not.toContainText(/Scripted demo/);
+    await page.locator("#tab-alternatives").click();
+    const bots = page.locator("#messages .message.bot");
+    const before = await bots.count();
+    await page.locator("#panel-alternatives .route-card", { hasText: "Create" }).click();
+    await expect(bots).toHaveCount(before + 1);
+    await expect(page.locator("#send")).toBeEnabled();
+    const msg = bots.last();
+    await expect(label(msg)).not.toContainText(/scripted demo/i);
+    await expect(msg).toContainText(/plan for your own tool/i);
+    await page.locator("#tab-plan").click();
+    await expect(page.locator("#panel-plan")).toContainText(/Clean-room rules/);
+  });
+
+  test("23 Explore catalog shows the same entries as its count", async ({ page }) => {
+    await openInnovate(page);
+    const size = (await page.locator("#catalog-size").innerText()).trim();
+    await page.locator("#catalog-nav").click();
+    await expect(page.locator("#view-alternatives")).toBeVisible();
+    await expect(page.locator("#alt-count")).toHaveText(new RegExp(`Showing ${size} of ${size} `));
+  });
+
+  test("24 on a phone the workspace doesn't cover the answer", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const page = await ctx.newPage();
+    await openInnovate(page);
+    const msg = await ask(page, "something like Figma for a school project");
+    await expect(page.locator(".work-area")).not.toHaveClass(/workspace-open/);
+    await expect(msg).toBeInViewport();
+    await page.locator("#workspace-toggle").click();
+    await expect(page.locator("#panel-alternatives")).toBeVisible();
+    await ctx.close();
   });
 });

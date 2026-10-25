@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { AGENTS } from "./agents/index.js";
 import { ACTIONS, handleAuth } from "./auth.js";
 import { pickProvider } from "./llm.js";
-import { run, StepError, type RunOptions } from "./orchestrator.js";
+import { requestContext, run, StepError, type RunOptions } from "./orchestrator.js";
 import { buildApp, REBUILD_MODELS, researchApp } from "./rebuild.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -28,7 +28,7 @@ function staticFile(urlPath: string): string | null {
   if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
   return existsSync(file) && statSync(file).isFile() ? file : null;
 }
-const MAX_BODY = 4096;
+const MAX_BODY = 8192;
 
 export const EXAMPLES = [
   "I need something like Photoshop for my Linux laptop to retouch photos with layers and masks",
@@ -103,10 +103,10 @@ export function createServer(base: RunOptions = {}): Server {
       }
       if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 16_384), base));
       if (req.method === "POST" && req.url === "/api/recommend") {
-        const body = (await readJson(req)) as { query?: unknown; offline?: unknown };
+        const body = (await readJson(req)) as { query?: unknown; offline?: unknown; context?: unknown; plan?: unknown };
         const query = typeof body.query === "string" ? body.query.trim().slice(0, 500) : "";
         if (!query) return send(400, { error: "Describe what you need." });
-        const { result, trace } = await run(query, { ...base, offline: base.offline || body.offline === true });
+        const { result, trace } = await run(query, { ...base, offline: base.offline || body.offline === true, context: requestContext(body.context), plan: body.plan === true });
         return send(200, { result, trace });
       }
       send(404, { error: "not found" });

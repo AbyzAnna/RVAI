@@ -40,6 +40,10 @@ export interface RunOptions {
   discover?: boolean;
   /** How discovered links are checked (tests pass a fake). */
   urlCheck?: UrlCheck;
+  /** The person's earlier messages in this chat, oldest first, so a follow-up question keeps its topic. */
+  context?: string[];
+  /** Always include a plan for an original tool, even when a free option covers the must-haves. */
+  plan?: boolean;
 }
 
 export interface RunResult {
@@ -136,6 +140,28 @@ function sanitize(rec: Recommendation): Recommendation {
   };
 }
 
+/** Reads the optional `context` field of a request: the last two earlier messages, 500 characters each. */
+export function requestContext(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((c): c is string => typeof c === "string").map((c) => c.trim().slice(0, 500)).filter(Boolean).slice(-2);
+}
+
+const REFERS_BACK = /\b(these|those|them|it|its|this|that one|which one|which of|the (first|second|third|last) one|ones|any of|same)\b/i;
+const NEW_REQUEST = /\b(like|alternative|alternatives|instead of|replacement|replace|similar to)\b/i;
+
+/**
+ * Turns a follow-up ("which of these works offline?") into a full request by putting the earlier message in
+ * front of it. Only the latest message is guarded and decides the topic: it stays on its own when it names a
+ * product or reads as a new request, and earlier messages the guard would refuse are never used.
+ */
+export function withContext(query: string, context: string[] | undefined, catalog: Catalog): string | null {
+  const earlier = (context ?? []).map((c) => c.trim()).filter((c) => c && checkRequest(c).allowed);
+  if (!earlier.length || detectProduct(catalog, query)) return null;
+  const words = query.split(/\s+/).filter(Boolean).length;
+  if (NEW_REQUEST.test(query) || (!REFERS_BACK.test(query) && words > 6)) return null;
+  return `${earlier.slice(-2).join(". ")}. Follow-up: ${query}`;
+}
+
 /**
  * The Orchestrator. Guards the input, then dispatches to the sub-agents in src/agents:
  * Goal Analyzer -> Alternative Finder -> (Feature-Gap Comparator || Threat & Risk) -> Recommendation Synthesizer,
@@ -152,9 +178,12 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
     trace.push({ step: "guard-input", status: "blocked", ms: 0, detail: guard.category });
     return { result: Refusal.parse(refusal(query, guard.reason!, catalog)), trace };
   }
+  const followUp = withContext(query, opts.context, catalog);
+  const asked = followUp ?? query;
   // Prompt injection doesn't get a refusal: the request is still answered, but no model reads it.
-  const requestThreats = scanForInjection(query);
-  trace.push({ step: "guard-input", status: "ok", ms: 0, ...(requestThreats.length ? { detail: "prompt injection: model calls disabled" } : {}) });
+  const requestThreats = scanForInjection(asked);
+  const notes = [followUp ? "follow-up: read with the earlier message" : null, requestThreats.length ? "prompt injection: model calls disabled" : null].filter(Boolean);
+  trace.push({ step: "guard-input", status: "ok", ms: 0, ...(notes.length ? { detail: notes.join("; ") } : {}) });
 
   // Anthropic API first (explicit client or key), then OpenRouter, then keywords.
   const provider = opts.offline || requestThreats.length ? null : pickProvider(env, opts.client);
@@ -166,10 +195,10 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
       label: provider ?? undefined,
       primary: () =>
         provider === "openrouter"
-          ? analyzeWithOpenRouter(query, catalog, { env, model: opts.model, fetch: opts.fetch })
-          : analyzeWithClaude(query, catalog, { client: opts.client, model: opts.model }),
+          ? analyzeWithOpenRouter(asked, catalog, { env, model: opts.model, fetch: opts.fetch })
+          : analyzeWithClaude(asked, catalog, { client: opts.client, model: opts.model }),
       retries: 1,
-      fallback: { run: () => analyzeWithKeywords(query, catalog), label: "keyword analyzer" },
+      fallback: { run: () => analyzeWithKeywords(asked, catalog), label: "keyword analyzer" },
       ...(provider ? {} : { skipPrimary: skipReason }),
     },
     trace,
@@ -221,8 +250,8 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
       name: "synthesizer",
       schema: Recommendation,
       primary: () => {
-        const rec = buildRecommendation(profile, matrix, found.catalog);
-        return { ...rec, threats: scopeThreats(threats, rec.picks.map((p) => p.name), rec.buildPlan !== null) };
+        const rec = buildRecommendation(profile, matrix, found.catalog, { plan: opts.plan });
+        return { ...rec, query, threats: scopeThreats(threats, rec.picks.map((p) => p.name), rec.buildPlan !== null) };
       },
     },
     trace,

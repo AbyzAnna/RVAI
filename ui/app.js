@@ -2,7 +2,7 @@
 // No AI generation happens here. Live mode talks to Anna's POST /api/recommend (ui/rvai-adapter.js); any other
 // endpoint gets the 0.2-draft PROPOSED envelope (docs/conversational-product-contract.md).
 import { createWebsiteTemplate } from './website-template.js';
-import { isRecommendEndpoint, recommendQuery, recommendError, fromRecommend } from './rvai-adapter.js';
+import { isRecommendEndpoint, recommendQuery, recommendContext, recommendError, fromRecommend } from './rvai-adapter.js';
 import { rebuildIntent, targetFrom } from './rebuild-core.js';
 import { mountRebuild } from './rebuild-flow.js';
 const $ = id => document.getElementById(id);
@@ -111,14 +111,14 @@ function updateControls() {
 }
 function setBusy(on) { busy = on; updateControls(); }
 
-async function send(raw, { retry = false } = {}) {
+async function send(raw, { retry = false, plan = false } = {}) {
   const text = raw.trim();
   if (busy || !dataLoaded || !text) return;
   if (!retry) { addMessage('user', text); $('message-input').value = ''; }
   setQuick([]);
   const intent = CRACK_RE.test(text) ? null : rebuildIntent(text);
   if (intent) return startRebuild(intent.target || contextTarget(), intent.notes);
-  if (liveMode()) return sendLive(text);
+  if (liveMode()) return sendLive(text, plan);
   if (dataError) return bot(`The catalog could not be loaded (${dataError}), so the scripted demo cannot search. Serve the repository root over HTTP and reload the page.`, { error: true, tag: 'Catalog error', log: false });
   if (CRACK_RE.test(text)) return bot('I can’t help crack software, bypass licensing or activation, or find pirated copies. I can help you find a free or open alternative, extend an open project, or plan an original tool that does what you need. What do you want to be able to do?',
     { tag: 'RevAI · scripted demo · declined' });
@@ -147,11 +147,11 @@ function request() {
   return { contract_version: CONTRACT, conversation_id: state.conversation_id, mode: 'live', messages: state.messages, brief: b,
     discovery_spec: catOf(state.category) ? { category: state.category, platform: c.platform, budget: 0, required_features: state.featureIds } : null };
 }
-async function sendLive(text) {
+async function sendLive(text, plan = false) {
   setBusy(true);
   try {
     const url = endpoint();
-    const data = isRecommendEndpoint(url) ? fromRecommend(await callAgent(url, { query: recommendQuery(state.messages) })) : await callAgent(url, request());
+    const data = isRecommendEndpoint(url) ? fromRecommend(await callAgent(url, { query: recommendQuery(state.messages), context: recommendContext(state.messages), ...(plan ? { plan: true } : {}) })) : await callAgent(url, request());
     const found = /^Alternatives to (.+)$/.exec(data?.discovery?.title || '')?.[1];
     if (found) state.lastTarget = found;
     agentStatus = 'ok';
@@ -159,7 +159,7 @@ async function sendLive(text) {
   } catch (e) {
     agentStatus = 'failed';
     bot(`Agent request failed: ${e.message}. Nothing was generated and no scripted fallback was used. Your brief is preserved.`,
-      { tag: 'Connection error', error: true, log: false, extras: [actions([['Retry', () => send(text, { retry: true })]])] });
+      { tag: 'Connection error', error: true, log: false, extras: [actions([['Retry', () => send(text, { retry: true, plan })]])] });
   } finally { setBusy(false); updateMode(); renderAll(); $('message-input').focus(); }
 }
 // Relative paths (e.g. /api/recommend through scripts/dev_server.py) resolve against the page.
@@ -213,7 +213,7 @@ function visualReply(v, steps) {
     el('ul', {}, v.discounts.map(dc => el('li', {}, dc.url ? el('a', { href: dc.url, target: '_blank', rel: 'noopener noreferrer', text: dc.name }) : dc.name, dc.eligibility ? el('small', { text: ` · ${dc.eligibility}` }) : null)))));
   if (v.risks.length) parts.push(el('div', { class: 'risk-list' }, el('b', { text: 'Risks to check' }),
     v.risks.map(t => el('div', { class: `risk-item sev-${t.severity}` }, el('span', { class: 'risk-badge', text: RISK_LABEL[t.severity] || t.severity }), el('span', {}, el('strong', { text: t.subject }), ` ${t.advice}`)))));
-  if (v.plan) parts.push(el('div', { class: 'callout plan' }, el('b', { text: 'Nothing free covers enough, so here’s a plan for your own tool' }), el('p', { text: v.plan.reason }),
+  if (v.plan) parts.push(el('div', { class: 'callout plan' }, el('b', { text: 'A plan for your own tool' }), el('p', { text: v.plan.reason }),
     el('div', { class: 'message-actions' },
       el('button', { type: 'button', class: 'small-button primary', text: 'Build it for me', onclick: () => startRebuild(contextTarget()) }),
       el('button', { type: 'button', class: 'small-button', text: 'Download plan (.md)', onclick: () => download('rvai-plan.md', v.plan.markdown, 'text/markdown') }),
@@ -224,6 +224,11 @@ function visualReply(v, steps) {
 }
 
 function applyAgent(d) {
+  // A refused message is never sent again as context for a later question.
+  if (d.stage === 'refused') { const last = state.messages.findLast(m => m.role === 'user'); if (last) last.refused = true; }
+  // Each live answer replaces the last one: a plan or alternatives from an earlier answer must not linger.
+  if ('plan' in d && d.plan == null) state.agentPlan = null;
+  if ('discovery' in d && d.discovery == null) state.discovery = null;
   const q = d.clarifying_question;
   const text = isStr(d.assistant_message) ? d.assistant_message : isStr(q?.prompt) ? q.prompt : null;
   const ignored = [];
@@ -249,7 +254,7 @@ function applyAgent(d) {
       extras: steps ? [el('details', { class: 'agent-steps' }, el('summary', { text: `How RVAI got this · ${steps.length} steps` }), el('ol', {}, steps.map(s => el('li', {}, el('span', { text: s.label }), s.status ? el('small', { text: s.status }) : null))))] : [] });
   }
   if (Array.isArray(q?.options)) setQuick(q.options.filter(isStr).map(o => [o, () => send(o)]));
-  if (state.discovery || state.agentPlan) openWorkspace(state.agentPlan ? 'plan' : 'alternatives');
+  if (state.discovery || state.agentPlan) autoOpenWorkspace(state.agentPlan ? 'plan' : 'alternatives');
 }
 
 // ---------- scripted interview ----------
@@ -406,7 +411,7 @@ function recompute(prefix) {
     const unk = [...top.unknown_features.map(featLabel), ...extraUnknowns()];
     msg = `${d.recommendations.length} catalog option${d.recommendations.length === 1 ? '' : 's'} in “${catLabel()}”${d.excluded.length ? `, ${d.excluded.length} excluded (see Alternatives)` : ''}. Best feature evidence: ${top.project.name} (${top.supported_features.length}/${state.featureIds.length} of your recognized features).${unk.length ? ` Not evidenced in the catalog (unverified, not missing): ${unk.join(', ')}.` : ''} Hardware fit and offline use are unverified for every entry.\n\nSuggested route: ${ROUTES[suggestedRoute(d)][0]}. Pick a base project with “Use this project” or “Extend this project” in Alternatives, or choose a route here:`;
     bot(prefix ? `${prefix}\n\n${msg}` : msg, { extras: [routeActions(), reviseActions()] });
-    openWorkspace('alternatives');
+    autoOpenWorkspace('alternatives');
   }
   setQuick(REVISIONS);
   renderAll();
@@ -414,6 +419,7 @@ function recompute(prefix) {
 // baseId: explicit per-card choice. Chat buttons without a choice fall back to the top-ranked option and say so.
 function chooseRoute(r, baseId) {
   if (busy) return;
+  if (liveMode() && state.provenance.discovery === 'live') return chooseLiveRoute(r, baseId);
   const recs = state.discovery?.recommendations || [];
   if (r !== 'create' && !recs.length) return bot('There is no catalog option to find or extend — choose Create instead.', { extras: [actions([['Create (proposal)', () => chooseRoute('create')]])] });
   let note = '';
@@ -421,7 +427,7 @@ function chooseRoute(r, baseId) {
     state.baseId = null;
     note = state.category === 'website'
       ? ' Review the plan, then press “Create demo website template” if you want a static starter page. Nothing is made until you press it.'
-      : ' This is a proposal: building it requires Anna’s connected agent; the scripted demo generates nothing.';
+      : ' This is a proposal: the scripted demo generates nothing. Turn on the connected agent in Connection settings for an AI plan.';
   } else {
     const explicit = baseId && recs.some(m => m.project.id === baseId);
     state.baseId = explicit ? baseId : baseOf() ? state.baseId : recs[0].project.id;
@@ -434,6 +440,21 @@ function chooseRoute(r, baseId) {
   setQuick(REVISIONS);
   renderAll();
   openWorkspace('plan');
+}
+
+// With the AI connected, Find just marks the option to start from; Extend and Create ask the backend for a plan
+// (a normal chat turn, so the request is read together with the earlier messages).
+function chooseLiveRoute(r, baseId) {
+  const recs = state.discovery?.recommendations || [];
+  const base = recs.find(m => m.project.id === baseId) || recs[0];
+  if (r !== 'create' && !base) return bot('There is no free option here to start from, so choose Create for a plan of your own tool.', { tag: 'RVAI' });
+  if (r === 'find') {
+    state.route = 'find'; state.baseId = base.project.id;
+    bot(`Start with ${base.project.name}: open its official site from the card in Alternatives and try your must-haves there.`, { tag: 'RVAI' });
+    renderAll();
+    return openWorkspace('alternatives');
+  }
+  send(r === 'extend' ? `Plan an add-on for ${base.project.name} that fills the gaps` : 'Plan how to build this myself', { plan: true });
 }
 
 // Local template: only after an explicit click, only for the website Create route. Not AI generation.
@@ -504,7 +525,7 @@ function planSteps() {
     ['Original scope', `“${state.target}” — for: ${state.purpose || 'not stated'}.`],
     ['Core features', featText + (extraUnknowns().length ? ` (unverified: ${extraUnknowns().map(featLabel).join(', ')})` : '')],
     ['Fit your device', `${dev} ${limit}`],
-    ['Proposal status', `Building a ${catLabel().toLowerCase()} project requires Anna’s agent. The scripted demo generates no code or assets.`], accept];
+    ['Proposal status', `This is a proposal for a ${catLabel().toLowerCase()} project. The scripted demo generates no code or assets.`], accept];
 }
 function plan() {
   if (state.agentPlan) return { source: 'live_agent', ...state.agentPlan };
@@ -529,6 +550,14 @@ function renderAll() { renderBrief(); renderAlternatives(); renderPlan(); render
 
 function renderBrief() {
   const f = (k, v) => el('div', { class: 'brief-field' }, el('span', { text: k }), el('strong', { text: v || 'Not provided yet' }));
+  const b = state.agentBrief;
+  if (state.provenance.brief === 'live' && b) return put($('panel-brief'),
+    el('h3', { text: 'Project brief' }),
+    f('Your request', b.request), f('Replaces', b.replaces || 'No paid product named'),
+    f('Best free option', b.best_option || 'None fits well yet'), f('Covers', b.covers), f('Gaps to fill', (b.gaps || []).join(', ') || (b.best_option ? 'None found' : '')),
+    f('Route', state.route && ROUTES[state.route][0]), f('Starting from', state.route === 'create' ? 'An original tool of your own' : baseOf()?.project.name || b.best_option),
+    el('p', { class: 'note', text: 'From the RVAI backend’s answer to your latest message.' }),
+    el('button', { type: 'button', class: 'small-button', text: 'Download brief (JSON)', onclick: () => download('rvai-brief.json', b) }));
   put($('panel-brief'),
     el('h3', { text: 'Project brief' }),
     f('Goal (your words)', state.target), f('Category', state.target ? catLabel() : ''), f('Purpose', state.purpose),
@@ -615,7 +644,7 @@ function renderPreview() {
     el('p', { class: 'note', text: canTemplate()
       ? 'Review the plan, then create the demo website template. Nothing is made until you press the button.'
       : state.route === 'create' && state.category !== 'website'
-        ? 'No artifact. Building this is a proposal until Anna’s agent is connected; the scripted demo does not generate apps, games or CAD tools.'
+        ? (state.provenance.plan === 'live' ? 'The plan is in the Plan tab. RVAI doesn’t generate the app itself yet; follow the steps and clean-room rules there.' : 'No artifact. The scripted demo does not generate apps, games or CAD tools; turn on the connected agent for an AI plan.')
         : 'No artifact yet. Only the original website plan can produce a local demo template; other builds need the connected agent.' }),
     canTemplate() ? el('button', { type: 'button', class: 'small-button primary', text: 'Create demo website template', onclick: makeTemplate }) : null);
 }
@@ -628,6 +657,12 @@ function showTab(name) {
     t.tabIndex = on ? 0 : -1;
     $(`panel-${t.dataset.tab}`).hidden = !on;
   });
+}
+// After a reply the workspace opens by itself only where it sits beside the chat; on a phone it would cover the
+// answer, so it just switches to the right tab for when the person opens it.
+function autoOpenWorkspace(tab) {
+  if (window.matchMedia('(min-width: 901px)').matches) return openWorkspace(tab);
+  showTab(tab);
 }
 function openWorkspace(tab) {
   document.querySelector('.work-area').classList.add('workspace-open');
@@ -679,7 +714,8 @@ document.querySelectorAll('[data-example]').forEach(b => b.addEventListener('cli
 }));
 $('new-chat').addEventListener('click', resetProject);
 $('chat-nav').addEventListener('click', () => { setNav(false); if (state.discovery) openWorkspace('alternatives'); else closeWorkspace(); });
-$('catalog-nav').addEventListener('click', () => { setNav(true); openWorkspace('alternatives'); });
+// The full catalog lives on the Find software page (search, filters, every entry), so the sidebar link goes there.
+$('catalog-nav').addEventListener('click', () => { location.hash = '#alternatives'; });
 $('workspace-toggle').addEventListener('click', () => (document.querySelector('.work-area').classList.contains('workspace-open') ? closeWorkspace() : openWorkspace()));
 $('workspace-close').addEventListener('click', closeWorkspace);
 $('menu-toggle').addEventListener('click', () => document.querySelector('.sidebar').classList.toggle('open'));

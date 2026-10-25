@@ -52,7 +52,7 @@ function toPick(c: CandidateScore, rank: number, product: Product, profile: Goal
   };
 }
 
-function buildPlan(profile: GoalProfile, product: Product | undefined, top: CandidateScore | undefined): BuildPlan {
+function buildPlan(profile: GoalProfile, product: Product | undefined, top: CandidateScore | undefined, asked = false): BuildPlan {
   const label = (id: string) => product?.features.find((f) => f.id === id)?.label ?? id;
   const gaps = top
     ? profile.mustHaves.filter((id) => !top.covered.includes(id)).map(label)
@@ -61,7 +61,9 @@ function buildPlan(profile: GoalProfile, product: Product | undefined, top: Cand
       : profile.tasks;
   const vibe = profile.vibe.length > 0 ? ` with a ${profile.vibe.join(", ")} vibe` : "";
   const what = product ? `${product.category} tool` : "tool";
-  const reason = !product
+  const reason = asked
+    ? `You asked for a plan for your own tool${top ? `, so here is one next to the free options (${top.name} covers ${pct(top.mustHaveCoverage)} of your must-haves)` : ""}.`
+    : !product
     ? "This request is not in RVAI's catalog yet, so there is no vetted free alternative to rank."
     : !top
       ? "No free alternative in the catalog fits your filters."
@@ -97,6 +99,7 @@ export function buildRecommendation(
   profile: GoalProfile,
   matrix: FeatureMatrix,
   catalog: Catalog,
+  opts: { plan?: boolean } = {},
 ): Recommendation {
   const product = catalog.products.find((p) => p.id === matrix.productId);
   const ranked = matrix.candidates.slice(0, MAX_PICKS);
@@ -112,7 +115,7 @@ export function buildRecommendation(
     target: product ? { id: product.id, name: product.name, vendor: product.vendor } : null,
     picks,
     discounts: product?.officialDiscounts ?? [],
-    buildPlan: needsBuild ? buildPlan(profile, product, top) : null,
+    buildPlan: needsBuild || opts.plan ? buildPlan(profile, product, top, !needsBuild) : null,
     attribution: discovered
       ? "These alternatives were found live by Claude because the request isn't in RVAI's catalog. Each link was checked to load, but licenses and features were not reviewed by a person, so check the official site before relying on them. Product names are trademarks of their owners and are used only to say what an alternative replaces."
       : `Licenses and links come from RVAI's seed catalog${catalog.version ? ` (version ${catalog.version})` : ""}; check each project's official site for current terms. Product names are trademarks of their owners and are used only to say what an alternative replaces.`,

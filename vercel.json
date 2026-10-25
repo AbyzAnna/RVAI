@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build && rm -rf public && mkdir public && cp -R ui data web public/ && rm -f public/ui/*.test.mjs",
+  "outputDirectory": "public",
   "functions": {
     "api/recommend.js": {
       "includeFiles": "{data,dist}/**",
