@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RVAI catalog 0.1",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "name",
+      "category",
+      "official_url",
+      "source_repository",
+      "license",
+      "license_source_url",
+      "supported_platforms",
+      "features",
+      "feature_evidence",
+      "pricing_type",
+      "last_verified",
+      "verification_status",
+      "unknowns"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "name": {
+        "type": "string",
+        "minLength": 1
+      },
+      "category": {
+        "enum": [
+          "voxel_game",
+          "cad",
+          "video_editor"
+        ]
+      },
+      "official_url": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https://"
+      },
+      "source_repository": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https://"
+      },
+      "license": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "license_source_url": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https://"
+      },
+      "supported_platforms": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "enum": [
+            "windows",
+            "macos",
+            "linux",
+            "android",
+            "ios",
+            "web"
+          ]
+        }
+      },
+      "features": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string"
+        }
+      },
+      "feature_evidence": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      },
+      "pricing_type": {
+        "enum": [
+          "free_open_source",
+          "freemium",
+          "proprietary_free",
+          "free_trial",
+          "paid",
+          "unknown"
+        ]
+      },
+      "last_verified": {
+        "type": "string",
+        "format": "date"
+      },
+      "verification_status": {
+        "enum": [
+          "source_reviewed_not_runtime_tested",
+          "runtime_tested",
+          "unverified"
+        ]
+      },
+      "unknowns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": true
+  }
+}

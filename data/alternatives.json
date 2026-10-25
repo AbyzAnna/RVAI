@@ -142,5 +142,177 @@
       "dependency_and_asset_license_audit",
       "runtime_behavior"
     ]
+  },
+  {
+    "id": "minetest_game",
+    "name": "Minetest Game",
+    "category": "voxel_game",
+    "official_url": "https://content.luanti.org/packages/Minetest/minetest_game/",
+    "source_repository": "https://github.com/luanti-org/minetest_game",
+    "license": "LGPL-2.1 (code); CC-BY-SA-3.0 (media)",
+    "license_source_url": "https://github.com/luanti-org/minetest_game/blob/master/LICENSE.txt",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "exploration",
+      "mining",
+      "crafting",
+      "building"
+    ],
+    "feature_evidence": {
+      "exploration": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+      "mining": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+      "crafting": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+      "building": "https://github.com/luanti-org/minetest_game/blob/master/game.conf"
+    },
+    "platform_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://github.com/luanti-org/minetest_game/blob/master/LICENSE.txt",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Game package requiring the separately installed Luanti engine; not a standalone application. Desktop platform availability follows the engine; this exact game/engine combination has not been runtime-tested.",
+      "game.conf declares minimum engine version 5.8. README states rolling releases and compatibility with the latest stable engine; confirm the installed versions.",
+      "Peaceful basic sandbox with no NPCs, monsters or animals; upstream is in maintenance-only mode. Not a feature-equivalent Minecraft replacement.",
+      "Top-level source/media declarations only. Per-mod README and asset notices may contain additional license terms and attribution requirements; full per-file audit remains pending."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ],
+    "keywords": [
+      "voxel",
+      "block-building",
+      "crafting",
+      "sandbox"
+    ]
+  },
+  {
+    "id": "openscad",
+    "name": "OpenSCAD",
+    "category": "cad",
+    "official_url": "https://openscad.org/",
+    "source_repository": "https://github.com/openscad/openscad",
+    "license": "GPL-2.0 (declared; CGAL linking exception)",
+    "license_source_url": "https://github.com/openscad/openscad/blob/master/COPYING",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "parametric_modeling",
+      "constructive_solid_geometry",
+      "2d_extrusion",
+      "stl_export"
+    ],
+    "feature_evidence": {
+      "parametric_modeling": "https://openscad.org/about.html",
+      "constructive_solid_geometry": "https://openscad.org/about.html",
+      "2d_extrusion": "https://openscad.org/about.html",
+      "stl_export": "https://openscad.org/about.html"
+    },
+    "platform_source_url": "https://openscad.org/downloads.html",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://openscad.org/about.html",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Script-based solid CAD modeler; not an interactive sketch-first editor. Choose it for configurable geometry rather than assuming all CAD workflows are interchangeable.",
+      "Official site declares GPL version 2; COPYING includes a CGAL linking exception. This is a top-level declaration, not a complete source/dependency/asset audit. Model libraries and imported designs need their own review."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ],
+    "keywords": [
+      "cad",
+      "script-based cad",
+      "3d model",
+      "parametric design"
+    ]
+  },
+  {
+    "id": "kdenlive",
+    "name": "Kdenlive",
+    "category": "video_editor",
+    "official_url": "https://kdenlive.org/",
+    "source_repository": "https://invent.kde.org/multimedia/kdenlive",
+    "license": "GPL-3.0 (top-level; additional per-file licenses)",
+    "license_source_url": "https://github.com/KDE/kdenlive/blob/master/COPYING",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "timeline_editing",
+      "video_export",
+      "audio_mixing"
+    ],
+    "feature_evidence": {
+      "timeline_editing": "https://docs.kdenlive.org/en/user_interface/timeline.html",
+      "video_export": "https://docs.kdenlive.org/en/glossary.html",
+      "audio_mixing": "https://docs.kdenlive.org/en/cutting_and_assembling/editing.html"
+    },
+    "platform_source_url": "https://kdenlive.org/download/",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://github.com/KDE/kdenlive/blob/master/README.md",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Official downloads list Windows, macOS and Linux. OS-version and processor compatibility must be checked for the chosen build; this is not a hardware-fit guarantee.",
+      "KDE Invent is the primary repository; KDE GitHub is the official mirror used for linked evidence. Top-level GPLv3 COPYING does not replace per-file/LICENSES, dependency, codec or third-party media review.",
+      "Imported footage, music, effects and other assets retain their own terms. No software or media has been bundled or runtime-tested."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ],
+    "keywords": [
+      "video editing",
+      "timeline",
+      "audio mixing",
+      "video export"
+    ]
   }
 ]
