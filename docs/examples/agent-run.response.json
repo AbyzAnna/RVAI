@@ -1,0 +1,152 @@
+{
+  "schema_version": "0.1",
+  "recommendations": [
+    {
+      "project": {
+        "id": "luanti",
+        "name": "Luanti",
+        "category": "voxel_game",
+        "official_url": "https://www.luanti.org/",
+        "source_repository": "https://github.com/luanti-org/luanti",
+        "license": "LGPL-2.1-or-later",
+        "license_source_url": "https://github.com/luanti-org/luanti/blob/master/LICENSE.txt",
+        "supported_platforms": [
+          "windows",
+          "macos",
+          "linux"
+        ],
+        "features": [
+          "voxel_engine",
+          "modding",
+          "world_saving"
+        ],
+        "feature_evidence": {
+          "voxel_engine": "https://github.com/luanti-org/luanti/blob/master/README.md",
+          "modding": "https://github.com/luanti-org/luanti/blob/master/README.md",
+          "world_saving": "https://github.com/luanti-org/luanti/blob/master/README.md"
+        },
+        "platform_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+        "hardware_requirements": {
+          "minimum_ram_gb": null,
+          "dedicated_gpu_required": null,
+          "verification_status": "unknown"
+        },
+        "internet_requirements": {
+          "offline_use": null,
+          "verification_status": "unknown"
+        },
+        "pricing_type": "free_open_source",
+        "pricing_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+        "last_verified": "2026-10-25",
+        "verification_status": "source_reviewed_not_runtime_tested",
+        "license_review_status": "declared_license_only",
+        "notes": [
+          "Engine, not a complete Minecraft substitute. A separately reviewed game/content package is required. Engine media has multiple licenses; game and mod licenses must be reviewed separately."
+        ],
+        "unknowns": [
+          "hardware_fit",
+          "offline_use",
+          "dependency_and_asset_license_audit",
+          "runtime_behavior"
+        ]
+      },
+      "supported_features": [
+        "world_saving"
+      ],
+      "unknown_features": [
+        "crafting"
+      ],
+      "missing_features": [],
+      "feature_coverage": 0.5,
+      "compatibility_status": "needs_verification",
+      "warnings": [
+        "Engine, not a complete Minecraft substitute. A separately reviewed game/content package is required. Engine media has multiple licenses; game and mod licenses must be reviewed separately.",
+        "Hardware and offline suitability are unverified.",
+        "Declared license is not a completed compliance audit."
+      ]
+    },
+    {
+      "project": {
+        "id": "minetest_game",
+        "name": "Minetest Game",
+        "category": "voxel_game",
+        "official_url": "https://content.luanti.org/packages/Minetest/minetest_game/",
+        "source_repository": "https://github.com/luanti-org/minetest_game",
+        "license": "LGPL-2.1 (code); CC-BY-SA-3.0 (media)",
+        "license_source_url": "https://github.com/luanti-org/minetest_game/blob/master/LICENSE.txt",
+        "supported_platforms": [
+          "windows",
+          "macos",
+          "linux"
+        ],
+        "features": [
+          "exploration",
+          "mining",
+          "crafting",
+          "building"
+        ],
+        "feature_evidence": {
+          "exploration": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+          "mining": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+          "crafting": "https://github.com/luanti-org/minetest_game/blob/master/game.conf",
+          "building": "https://github.com/luanti-org/minetest_game/blob/master/game.conf"
+        },
+        "platform_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+        "hardware_requirements": {
+          "minimum_ram_gb": null,
+          "dedicated_gpu_required": null,
+          "verification_status": "unknown"
+        },
+        "internet_requirements": {
+          "offline_use": null,
+          "verification_status": "unknown"
+        },
+        "pricing_type": "free_open_source",
+        "pricing_source_url": "https://github.com/luanti-org/minetest_game/blob/master/LICENSE.txt",
+        "last_verified": "2026-10-25",
+        "verification_status": "source_reviewed_not_runtime_tested",
+        "license_review_status": "declared_license_only",
+        "notes": [
+          "Game package requiring the separately installed Luanti engine; not a standalone application. Desktop platform availability follows the engine; this exact game/engine combination has not been runtime-tested.",
+          "game.conf declares minimum engine version 5.8. README states rolling releases and compatibility with the latest stable engine; confirm the installed versions.",
+          "Peaceful basic sandbox with no NPCs, monsters or animals; upstream is in maintenance-only mode. Not a feature-equivalent Minecraft replacement.",
+          "Top-level source/media declarations only. Per-mod README and asset notices may contain additional license terms and attribution requirements; full per-file audit remains pending."
+        ],
+        "unknowns": [
+          "hardware_fit",
+          "offline_use",
+          "dependency_and_asset_license_audit",
+          "runtime_behavior"
+        ],
+        "keywords": [
+          "voxel",
+          "block-building",
+          "crafting",
+          "sandbox"
+        ]
+      },
+      "supported_features": [
+        "crafting"
+      ],
+      "unknown_features": [
+        "world_saving"
+      ],
+      "missing_features": [],
+      "feature_coverage": 0.5,
+      "compatibility_status": "needs_verification",
+      "warnings": [
+        "Game package requiring the separately installed Luanti engine; not a standalone application. Desktop platform availability follows the engine; this exact game/engine combination has not been runtime-tested.",
+        "game.conf declares minimum engine version 5.8. README states rolling releases and compatibility with the latest stable engine; confirm the installed versions.",
+        "Peaceful basic sandbox with no NPCs, monsters or animals; upstream is in maintenance-only mode. Not a feature-equivalent Minecraft replacement.",
+        "Top-level source/media declarations only. Per-mod README and asset notices may contain additional license terms and attribution requirements; full per-file audit remains pending.",
+        "Hardware and offline suitability are unverified.",
+        "Declared license is not a completed compliance audit."
+      ]
+    }
+  ],
+  "excluded": [],
+  "status": "matches",
+  "limitations": [
+    "Curated discovery adapter only; no LLM, build, install, or runtime verification."
+  ]
+}

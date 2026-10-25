@@ -1,0 +1,15 @@
+{
+  "goal": "I want a free block-building game with crafting and saved worlds.",
+  "category": "voxel_game",
+  "platform": "windows",
+  "budget": 0,
+  "required_features": [
+    "world_saving",
+    "crafting"
+  ],
+  "hardware_constraints": {
+    "ram_gb": 8,
+    "dedicated_gpu": false
+  },
+  "internet": "limited"
+}

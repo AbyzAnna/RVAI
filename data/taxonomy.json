@@ -1,0 +1,107 @@
+{
+  "schema_version": "0.1",
+  "categories": [
+    {
+      "id": "voxel_game",
+      "label": "Block-building games",
+      "keywords": [
+        "minecraft",
+        "voxel",
+        "block-building",
+        "block building"
+      ],
+      "features": [
+        {
+          "id": "voxel_engine",
+          "label": "Block-based worlds"
+        },
+        {
+          "id": "world_saving",
+          "label": "Save my world"
+        },
+        {
+          "id": "crafting",
+          "label": "Crafting"
+        },
+        {
+          "id": "modding",
+          "label": "Add custom content"
+        },
+        {
+          "id": "exploration",
+          "label": "Explore"
+        },
+        {
+          "id": "mining",
+          "label": "Mine resources"
+        },
+        {
+          "id": "building",
+          "label": "Build structures"
+        }
+      ]
+    },
+    {
+      "id": "cad",
+      "label": "3D CAD & design",
+      "keywords": [
+        "cad",
+        "3d design",
+        "3d model",
+        "fusion 360",
+        "solidworks"
+      ],
+      "features": [
+        {
+          "id": "parametric_modeling",
+          "label": "Editable 3D models"
+        },
+        {
+          "id": "2d_sketching",
+          "label": "2D sketches"
+        },
+        {
+          "id": "technical_drawings",
+          "label": "Technical drawings"
+        },
+        {
+          "id": "constructive_solid_geometry",
+          "label": "Combine solid shapes"
+        },
+        {
+          "id": "2d_extrusion",
+          "label": "Turn 2D shapes into 3D"
+        },
+        {
+          "id": "stl_export",
+          "label": "Export for 3D printing"
+        }
+      ]
+    },
+    {
+      "id": "video_editor",
+      "label": "Video editing",
+      "keywords": [
+        "video edit",
+        "edit a video",
+        "premiere",
+        "final cut"
+      ],
+      "features": [
+        {
+          "id": "timeline_editing",
+          "label": "Timeline editing"
+        },
+        {
+          "id": "video_export",
+          "label": "Export my video"
+        },
+        {
+          "id": "audio_mixing",
+          "label": "Audio mixing"
+        }
+      ]
+    }
+  ],
+  "notes": "Keywords are routing hints for a user goal, not claims of equivalence or affiliation. The user confirms category/capabilities. Anna owns AI interpretation."
+}

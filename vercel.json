@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/recommend.js": { "includeFiles": "data/catalog.json", "maxDuration": 60 }
+  },
+  "redirects": [{ "source": "/", "destination": "/ui/", "permanent": false }]
+}

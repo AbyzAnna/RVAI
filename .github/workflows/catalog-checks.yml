@@ -1,0 +1,36 @@
+name: UI and catalog checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Python catalog and metadata tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Validate catalog JSON
+        run: python -c "import json,pathlib; [json.loads(p.read_text()) for p in pathlib.Path('data').glob('*.json')]"
+
+      # UI files are ES modules without a package.json, so check them as module input.
+      - name: Syntax-check UI JavaScript
+        run: |
+          for f in ui/*.js; do
+            echo "Checking $f"
+            node --input-type=module --check < "$f"
+          done
+
+      - name: UI Node tests
+        run: node --test ui/*.test.mjs
