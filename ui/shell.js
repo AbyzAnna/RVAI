@@ -34,6 +34,10 @@ export function filterCatalog(items, { q = '', category = '' } = {}, featLabel =
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 const PLATFORM = { mac: 'macos' };
 const SPDX_ID = /^[A-Za-z0-9.+-]+$/; // a single SPDX id (expressions like "A OR B" get no license link)
+// What a reviewed entry replaces when the seed catalog doesn't list its site (shown as "alternative to …").
+export const CATEGORY_REPLACES = { voxel_game: ['Minecraft'], cad: ['Autodesk AutoCAD', 'Fusion 360'], video_editor: ['Adobe Premiere Pro'] };
+const addReplaces = (item, name) => { item.alternative_to = [...new Set([...(item.alternative_to || []), name])]; };
+export const alternativeTo = item => [...new Set([...(item.alternative_to || []), ...(CATEGORY_REPLACES[item.category] || [])])].join(' / ');
 export function fromSeedCatalog(seed, reviewed = []) {
   const cats = [], items = [];
   const seen = new Map(reviewed.map(r => [hostOf(r.official_url), r]));
@@ -43,14 +47,14 @@ export function fromSeedCatalog(seed, reviewed = []) {
     for (const a of p.alternatives || []) {
       const keywords = [p.name, ...(p.aliases || []), ...(a.vibe || [])];
       const prior = seen.get(hostOf(a.url));
-      if (prior) { prior.keywords = [...(prior.keywords || []), ...keywords]; continue; }
+      if (prior) { prior.keywords = [...(prior.keywords || []), ...keywords]; addReplaces(prior, p.name); continue; }
       const item = {
         id: `seed:${a.id}`, name: a.name, category: id, official_url: a.url, license: a.license,
         supported_platforms: (a.platforms || []).map(x => PLATFORM[x] || x),
         features: Object.entries(a.features || {}).filter(([, s]) => s !== 'partial').map(([f]) => f),
         license_source_url: SPDX_ID.test(a.license || '') && a.license !== 'Freeware' ? `https://spdx.org/licenses/${a.license}.html` : undefined,
         pricing_type: a.openSource ? 'free_open_source' : 'freeware', verification_status: 'seed_catalog', catalog_version: seed.version,
-        notes: a.notes ? [a.notes] : [], keywords
+        notes: a.notes ? [a.notes] : [], keywords, alternative_to: [p.name]
       };
       seen.set(hostOf(a.url), item);
       items.push(item);
@@ -252,7 +256,8 @@ function init({ authRequest, currentUser, displayName }) {
   function card(item) {
     return el('article', { class: 'alt-card' },
       el('div', { class: 'alt-card-head' }, el('span', { class: 'ico-badge tone-forest' }, icon(CAT_ICON[item.category] || 'i-alternatives')),
-        el('h2', { text: item.name }), el('span', { class: 'tag', text: catLabel(item.category) })),
+        el('h2', {}, item.name, alternativeTo(item) ? el('span', { class: 'alt-of', text: ` (alternative to ${alternativeTo(item)})` }) : null),
+        el('span', { class: 'tag', text: catLabel(item.category) })),
       el('div', { class: 'tags' }, [item.license || 'License not declared', VERIFY[item.verification_status] || words(item.verification_status || 'unverified'),
         item.last_verified ? `Sources checked ${item.last_verified}` : item.catalog_version ? `Catalog ${item.catalog_version}` : 'Check date unknown'].map(t => el('span', { class: 'tag', text: t }))),
       el('p', { class: 'alt-features', text: `Documented features: ${(item.features || []).map(featLabel).join(', ') || 'none recorded'}` }),

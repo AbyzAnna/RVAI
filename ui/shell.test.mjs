@@ -176,3 +176,13 @@ test('seed catalog joins the Alternatives page once, reviewed entries win', () =
   assert.ok(shell.filterCatalog(items, { q: 'photoshop' }).some(i => i.name === 'GIMP'), 'searchable by the paid product it replaces');
   assert.deepEqual(shell.fromSeedCatalog(null), { cats: [], items: [] });
 });
+
+test('every Find software card says what it is an alternative to', () => {
+  const seed = JSON.parse(read('../data/catalog.json'));
+  const reviewed = structuredClone(catalog);
+  const { items } = shell.fromSeedCatalog(seed, reviewed);
+  for (const i of [...reviewed, ...items]) assert.ok(shell.alternativeTo(i), `${i.name} has an "alternative to"`);
+  assert.equal(shell.alternativeTo(reviewed.find(i => i.id === 'luanti')), 'Minecraft');
+  assert.equal(shell.alternativeTo(reviewed.find(i => i.id === 'freecad')), 'Autodesk AutoCAD / Fusion 360');
+  assert.equal(shell.alternativeTo(items.find(i => i.name === 'GIMP')), 'Adobe Photoshop');
+});

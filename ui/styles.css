@@ -644,6 +644,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 html[data-route=innovate] .rain-toggle{display:none}
 @media (max-width:650px){.global-nav{gap:8px;padding:0 12px}.gnav-word{display:none!important}.gnav-try{padding:0 16px}.pick-grid{grid-template-columns:1fr}}
 
+.alt-of{font-weight:500;font-size:.78em;color:var(--ink-3);white-space:normal}
+.pick-title small.alt-of{color:var(--mint)}
+.project-card.chosen{border-color:var(--line-green)!important;background:rgba(74,222,128,.08)!important}
+
 /* ================= accessibility guardrails ================= */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
