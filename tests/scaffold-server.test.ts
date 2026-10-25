@@ -37,8 +37,22 @@ describe("web server", () => {
   });
   afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
-  it("serves the page and the examples", async () => {
-    const page = await fetch(base + "/");
+  it("serves the RVAI web app, its catalog files and health, and keeps files inside their folders", async () => {
+    const root = await fetch(base + "/", { redirect: "manual" });
+    expect(root.status).toBe(302);
+    expect(root.headers.get("location")).toBe("/ui/");
+    const app = await fetch(base + "/ui/");
+    expect(app.headers.get("content-type")).toMatch(/text\/html/);
+    expect(await app.text()).toContain("shell.js");
+    expect((await fetch(base + "/ui/app.js")).headers.get("content-type")).toMatch(/javascript/);
+    expect((await fetch(base + "/data/catalog.json")).status).toBe(200);
+    expect((await fetch(base + "/ui/../package.json")).status).toBe(404);
+    expect((await fetch(base + "/ui/%2e%2e/package.json")).status).toBe(404);
+    expect(await (await fetch(base + "/api/health")).json()).toEqual({ ok: true, ai: null });
+  });
+
+  it("serves the simple page and the examples", async () => {
+    const page = await fetch(base + "/simple");
     expect(page.headers.get("content-type")).toMatch(/text\/html/);
     expect(await page.text()).toContain("Find alternatives");
     const { examples } = await (await fetch(base + "/api/examples")).json();

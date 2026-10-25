@@ -628,7 +628,20 @@ document.querySelectorAll('.workspace-tabs [role=tab]').forEach((t, i, all) => {
     if (d) { const next = all[(i + d + all.length) % all.length]; showTab(next.dataset.tab); next.focus(); }
   });
 });
-$('live-mode').addEventListener('change', () => { agentStatus = 'off'; updateMode(); });
+$('live-mode').addEventListener('change', () => { store.set('revai.live', $('live-mode').checked ? '1' : '0'); agentStatus = 'off'; updateMode(); });
+// Served by the RVAI backend (npm run web, or Vercel)? Then use the connected agent by default, unless the
+// person switched it off before. GET /api/health only exists on that backend.
+async function detectBackend() {
+  if (store.get('revai.live') === '0') return;
+  try {
+    const r = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
+    if (!r.ok || !(await r.json())?.ok) return;
+    if (!$('api-url').value.trim()) $('api-url').value = '/api/recommend';
+    $('live-mode').checked = true;
+    agentStatus = 'selected';
+    updateMode();
+  } catch { /* static hosting: stay on the scripted demo */ }
+}
 $('api-url').value = store.get('revai.apiUrl') || '/api/recommend';
 $('api-url').addEventListener('change', () => { store.set('revai.apiUrl', $('api-url').value.trim()); if (liveMode()) { agentStatus = 'selected'; updateMode(); } });
 
@@ -650,3 +663,4 @@ showTab('brief');
 renderAll();
 updateControls();
 loadData().then(renderAll);
+detectBackend();

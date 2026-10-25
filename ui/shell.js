@@ -284,14 +284,14 @@ function init() {
   // changes later, and inside Innovate so the chat stays clean.
   function initRain() {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const COLS = 26, ROWS = 56;
+    const COLS = 34, ROWS = 56;
     const bits = () => Array.from({ length: ROWS }, () => (Math.random() < 0.5 ? '0' : '1')).join('\n');
     const rain = el('div', { class: 'binary-rain', 'aria-hidden': 'true' });
     for (let i = 0; i < COLS; i++) {
       const b = bits(), col = el('span', { text: `${b}\n${b}` }); // doubled so the -50% → 0 loop is seamless
       col.style.setProperty('--x', `${((i + Math.random() * 0.6) / COLS * 100).toFixed(2)}%`);
-      col.style.setProperty('--dur', `${(22 + Math.random() * 26).toFixed(1)}s`);
-      col.style.setProperty('--delay', `${(-Math.random() * 40).toFixed(1)}s`);
+      col.style.setProperty('--dur', `${(11 + Math.random() * 13).toFixed(1)}s`);
+      col.style.setProperty('--delay', `${(-Math.random() * 24).toFixed(1)}s`);
       col.style.setProperty('--o', (0.35 + Math.random() * 0.65).toFixed(2));
       rain.append(col);
     }

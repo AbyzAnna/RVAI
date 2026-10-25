@@ -1,9 +1,30 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { extname, join, normalize, sep } from "node:path";
 import { createServer as createHttpServer, type IncomingMessage, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
+import { pickProvider } from "./llm.js";
 import { run, StepError, type RunOptions } from "./orchestrator.js";
 
-const PAGE = fileURLToPath(new URL("../web/index.html", import.meta.url));
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const PAGE = join(ROOT, "web", "index.html");
+// Static folders served as-is: the RVAI web app (ui/) and the catalog files it reads (data/).
+const STATIC_DIRS = ["ui", "data"];
+const TYPES: Record<string, string> = {
+  ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
+  ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+};
+
+/** Resolves /ui/... or /data/... to a file inside those folders, or null (never escapes them). */
+function staticFile(urlPath: string): string | null {
+  const path = decodeURIComponent(urlPath.split("?")[0]);
+  const dir = STATIC_DIRS.find((d) => path === `/${d}` || path.startsWith(`/${d}/`));
+  if (!dir) return null;
+  const base = join(ROOT, dir);
+  let file = normalize(join(ROOT, path));
+  if (file !== base && !file.startsWith(base + sep)) return null;
+  if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
+  return existsSync(file) && statSync(file).isFile() ? file : null;
+}
 const MAX_BODY = 4096;
 
 export const EXAMPLES = [
@@ -26,7 +47,10 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
-/** A small local web server: GET / serves the page, POST /api/recommend runs the pipeline. */
+/**
+ * A small local web server: the RVAI web app at /ui/ (and the catalog files in /data/), the simple
+ * page at /simple, and POST /api/recommend, all on one origin so the app needs no CORS or proxy.
+ */
 export function createServer(base: RunOptions = {}): Server {
   return createHttpServer(async (req, res) => {
     const send = (status: number, body: unknown, type = "application/json") => {
@@ -34,8 +58,30 @@ export function createServer(base: RunOptions = {}): Server {
       res.end(type === "application/json" ? JSON.stringify(body) : String(body));
     };
     try {
-      if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) return send(200, readFileSync(PAGE, "utf8"), "text/html");
-      if (req.method === "GET" && req.url === "/api/examples") return send(200, { examples: EXAMPLES });
+      const url = req.url ?? "/";
+      if (req.method === "GET" && url === "/") {
+        res.writeHead(302, { Location: "/ui/" });
+        return res.end();
+      }
+      if (req.method === "GET" && url === "/ui") {
+        res.writeHead(301, { Location: "/ui/" });
+        return res.end();
+      }
+      if (req.method === "GET" && (url === "/simple" || url === "/index.html")) return send(200, readFileSync(PAGE, "utf8"), "text/html");
+      if (req.method === "GET" && url === "/favicon.ico") {
+        res.writeHead(204);
+        return res.end();
+      }
+      if (req.method === "GET" && url === "/api/examples") return send(200, { examples: EXAMPLES });
+      if (req.method === "GET" && url === "/api/health") {
+        const env = base.env ?? process.env;
+        return send(200, { ok: true, ai: base.offline ? null : pickProvider(env, base.client) });
+      }
+      const file = req.method === "GET" ? staticFile(url) : null;
+      if (file) {
+        res.writeHead(200, { "Content-Type": `${TYPES[extname(file)] ?? "application/octet-stream"}; charset=utf-8`, "Cache-Control": "no-store" });
+        return res.end(readFileSync(file));
+      }
       if (req.method === "POST" && req.url === "/api/recommend") {
         const body = (await readJson(req)) as { query?: unknown; offline?: unknown };
         const query = typeof body.query === "string" ? body.query.trim().slice(0, 500) : "";
@@ -54,5 +100,5 @@ export function createServer(base: RunOptions = {}): Server {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (existsSync(".env")) process.loadEnvFile(".env");
   const port = Number(process.env.PORT ?? 3000);
-  createServer().listen(port, "127.0.0.1", () => console.log(`RVAI is running at http://localhost:${port}`));
+  createServer().listen(port, "127.0.0.1", () => console.log(`RVAI is running at http://localhost:${port}/ui/`));
 }

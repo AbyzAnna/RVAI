@@ -31,7 +31,7 @@ request ─▶ guard input ─▶ analyze goal ─▶ (discover) ─▶ compare 
 - **Guardrails** (`src/guardrails.ts`) refuse cracking, piracy, license bypass, decompiling or reverse engineering, asset ripping and cheats, and audit every link in the output.
 - **Live discovery** (`src/discover.ts`) looks up alternatives for requests outside the catalog and checks every link before showing it.
 - **Seed catalog** (`data/catalog.json`) holds 15 paid products and their free alternatives, each with an SPDX license and official link.
-- **Web page** (`web/index.html`, served by `src/server.ts`) and **CLI** (`src/cli.ts`) both run the same pipeline.
+- **Web app** (`ui/`, served by `src/server.ts` at `/ui/`) and **CLI** (`src/cli.ts`) both run the same pipeline. A plain fallback page lives at `/simple`.
 
 ## Usage
 
@@ -39,7 +39,7 @@ Needs Node 20 or newer.
 
 ```bash
 npm install
-npm run web                       # open http://localhost:3000 and try it in the browser
+npm run web                       # open http://localhost:3000 (the RVAI web app, wired to the backend)
 npm run demo                      # offline demo, no API key needed
 npx tsx src/cli.ts --offline "a cozy game like Minecraft for an old laptop"
 npx tsx src/cli.ts --json --trace "free Office for my Mac"
@@ -136,16 +136,19 @@ Then visit http://127.0.0.1:4173/ui/ .
 
 #### Connect Anna's backend (live mode)
 
-The pipeline above (`npm run web`) serves `POST /api/recommend`. It sends no CORS headers, so serve the UI through the dev proxy, which forwards `/api/*` on the same origin:
+One command serves the UI and the backend on the same origin:
 
 ```sh
-# terminal 1
-npm install && npm run web            # http://127.0.0.1:3000 (offline keyword analyzer without an API key)
-# terminal 2
+npm install && npm run web            # http://127.0.0.1:3000/ui/ (keyword analyzer without an API key; Claude with one in .env)
+```
+
+When the page is served this way it finds `GET /api/health` and switches **Use connected agent** on by itself (untick it in **Connection settings** to go back to the scripted demo; the choice is remembered). The Python dev proxy still works if you prefer to serve the UI separately:
+
+```sh
 python3 scripts/dev_server.py         # UI on http://127.0.0.1:4173/ui/, /api/* -> :3000 (--api to change)
 ```
 
-Then, in Innovate, open **Connection settings**, keep the endpoint `/api/recommend` and tick **Use connected agent**. `ui/rvai-adapter.js` maps her `{result, trace}` into the chat, the Alternatives cards (gaps and workarounds), the Plan tab (when she returns a `buildPlan`) and a refusal with legal options. Her trace is shown as reported, and nothing is invented locally. The fixtures in `docs/examples/recommend.*.json` are real responses from her server. If the backend is down, the chat shows a 502 with Retry and no scripted fallback. No frontend installation or API key required. See [UI connection contract](docs/ui-api-contract.md), [role 1 requirements](docs/role-1-requirements.md), and [today’s workflow](docs/today-workflow.md).
+With the proxy, open **Connection settings** in Innovate, keep the endpoint `/api/recommend` and tick **Use connected agent**. `ui/rvai-adapter.js` maps her `{result, trace}` into the chat, the Alternatives cards (gaps and workarounds), the Plan tab (when she returns a `buildPlan`) and a refusal with legal options. Her trace is shown as reported, and nothing is invented locally. The fixtures in `docs/examples/recommend.*.json` are real responses from her server. If the backend is down, the chat shows a 502 with Retry and no scripted fallback. No frontend installation or API key required. See [UI connection contract](docs/ui-api-contract.md), [role 1 requirements](docs/role-1-requirements.md), and [today’s workflow](docs/today-workflow.md).
 
 What the preview is and is not:
 
