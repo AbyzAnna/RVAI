@@ -3,7 +3,7 @@ import { z } from "zod";
 export const Platform = z.enum(["windows", "mac", "linux", "web", "android", "ios"]);
 export type Platform = z.infer<typeof Platform>;
 
-export const Category = z.enum(["creative", "office", "audio", "video", "engineering", "3d", "games", "other"]);
+export const Category = z.enum(["creative", "office", "audio", "video", "engineering", "3d", "games", "dev", "security", "other"]);
 export type Category = z.infer<typeof Category>;
 
 export const SkillLevel = z.enum(["beginner", "intermediate", "advanced"]);
@@ -148,6 +148,8 @@ export type BuildPlan = z.infer<typeof BuildPlan>;
 export const Recommendation = z.object({
   status: z.literal("ok"),
   query: z.string(),
+  // "discovered": found live by Claude for a request outside the catalog; links checked, not human-reviewed.
+  source: z.enum(["catalog", "discovered"]),
   target: z.object({ id: z.string(), name: z.string(), vendor: z.string().optional() }).nullable(),
   picks: z.array(Pick),
   discounts: z.array(Discount),

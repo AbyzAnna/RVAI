@@ -106,11 +106,11 @@ describe("recommendations", () => {
   });
 
   it("plans an original tool for requests outside the catalog, without repeating the product name", () => {
-    const p = analyzeWithKeywords("a free Figma for my team", catalog);
+    const p = analyzeWithKeywords("a free Canva for my class posters", catalog);
     const rec = buildRecommendation(p, compareAlternatives(p, undefined), catalog);
     expect(rec.target).toBeNull();
     expect(rec.picks).toEqual([]);
     expect(rec.buildPlan!.reason).toMatch(/not in RVAI's catalog/);
-    expect(rec.buildPlan!.concept).not.toMatch(/Figma/);
+    expect(rec.buildPlan!.concept).not.toMatch(/Canva/);
   });
 });

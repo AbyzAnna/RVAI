@@ -19,9 +19,9 @@ Free alternatives to Adobe Photoshop
 ## How it works
 
 ```
-request ─▶ guard input ─▶ analyze goal ─▶ compare features ─▶ recommend ─▶ guard output ─▶ result
-              │ refuse        │ Claude, or                │ deterministic   │ picks, gaps,     │ drop unsafe
-              │ piracy etc.   │ keywords as fallback      │ coverage scores │ discounts, plan  │ links/text
+request ─▶ guard input ─▶ analyze goal ─▶ (discover) ─▶ compare features ─▶ recommend ─▶ guard output ─▶ result
+              │ refuse        │ Claude, or      │ only when not   │ deterministic   │ picks, gaps,     │ drop unsafe
+              │ piracy etc.   │ keywords        │ in the catalog  │ coverage scores │ discounts, plan  │ links/text
 ```
 
 - **Orchestrator** (`src/orchestrator.ts`) runs the steps in order, validates each step's output with zod, retries, falls back, and keeps a trace.
@@ -29,7 +29,9 @@ request ─▶ guard input ─▶ analyze goal ─▶ compare features ─▶ re
 - **Feature comparison** (`src/compare.ts`) scores each alternative: must-haves 55%, nice-to-haves 20%, vibe 10%, platform 10%, learning curve against skill level 5%. Coverage is weighted by each feature's weight (1 to 3); full support counts 1, a plug-in 0.75, partial 0.5. Same input, same ranking.
 - **Recommendations** (`src/recommend.ts`) return the top 3 picks with gaps and workarounds, official discounts for the original, and a plan for an original tool when the best pick covers under 70% of the must-haves.
 - **Guardrails** (`src/guardrails.ts`) refuse cracking, piracy, license bypass, decompiling or reverse engineering, asset ripping and cheats, and audit every link in the output.
-- **Seed catalog** (`data/catalog.json`) holds 11 paid products and their free alternatives, each with an SPDX license and official link.
+- **Live discovery** (`src/discover.ts`) looks up alternatives for requests outside the catalog and checks every link before showing it.
+- **Seed catalog** (`data/catalog.json`) holds 15 paid products and their free alternatives, each with an SPDX license and official link.
+- **Web page** (`web/index.html`, served by `src/server.ts`) and **CLI** (`src/cli.ts`) both run the same pipeline.
 
 ## Usage
 
@@ -37,11 +39,17 @@ Needs Node 20 or newer.
 
 ```bash
 npm install
+npm run web                       # open http://localhost:3000 and try it in the browser
 npm run demo                      # offline demo, no API key needed
 npx tsx src/cli.ts --offline "a cozy game like Minecraft for an old laptop"
 npx tsx src/cli.ts --json --trace "free Office for my Mac"
 npx tsx src/cli.ts --offline --catalog=examples/catalog.example.json "a free Figma"
+npx tsx src/cli.ts --scaffold my-tool "Photoshop with generative AI fill for raw photos"
 ```
+
+**Live discovery.** When a request isn't in the catalog (say, "edit and sign PDFs like Acrobat") and an API key is set, RVAI asks Claude for free alternatives, then keeps only the ones whose official https link passes the guardrails and actually loads. These results are labeled as found live and not reviewed by a person. Turn it off with `--no-discover`.
+
+**Starter kit.** `--scaffold DIR` writes an empty folder with a project brief in plain words, the clean-room rules, a credits file to fill in and a note on choosing a license, so building an original tool starts on the right foot.
 
 To let Claude analyze requests, give RVAI a key in the environment or in a `.env` file in the folder you run it from (`.env` is gitignored, so keys never get committed):
 

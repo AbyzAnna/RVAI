@@ -3,6 +3,7 @@ import type { BuildPlan, Catalog, CandidateScore, FeatureMatrix, GoalProfile, Pi
 /** Below this share of must-haves covered by the top pick, RVAI plans an original tool. */
 export const BUILD_THRESHOLD = 0.7;
 export const MAX_PICKS = 3;
+export const DISCOVERED_PREFIX = "discovered-";
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
@@ -103,13 +104,17 @@ export function buildRecommendation(
   const top = matrix.candidates[0];
   const needsBuild = !product || !top || top.mustHaveCoverage < BUILD_THRESHOLD || !top.platformMatch;
 
+  const discovered = product?.id.startsWith(DISCOVERED_PREFIX) ?? false;
   return {
     status: "ok",
     query: profile.query,
+    source: discovered ? "discovered" : "catalog",
     target: product ? { id: product.id, name: product.name, vendor: product.vendor } : null,
     picks,
     discounts: product?.officialDiscounts ?? [],
     buildPlan: needsBuild ? buildPlan(profile, product, top) : null,
-    attribution: `Licenses and links come from RVAI's seed catalog ${catalog.version ? ` (version ${catalog.version})` : ""}; check each project's official site for current terms. Product names are trademarks of their owners and are used only to say what an alternative replaces.`,
+    attribution: discovered
+      ? "These alternatives were found live by Claude because the request isn't in RVAI's catalog. Each link was checked to load, but licenses and features were not reviewed by a person, so check the official site before relying on them. Product names are trademarks of their owners and are used only to say what an alternative replaces."
+      : `Licenses and links come from RVAI's seed catalog${catalog.version ? ` (version ${catalog.version})` : ""}; check each project's official site for current terms. Product names are trademarks of their owners and are used only to say what an alternative replaces.`,
   };
 }

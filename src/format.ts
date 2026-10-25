@@ -18,7 +18,9 @@ export function formatResult(result: Recommendation | Refusal): string {
     return out.join("\n");
   }
 
-  out.push(result.target ? `Free alternatives to ${result.target.name}` : "No catalog match for this request", "");
+  out.push(result.target ? `Free alternatives to ${result.target.name}` : "No catalog match for this request");
+  if (result.source === "discovered") out.push("(found live by Claude; links checked, licenses not reviewed by a person)");
+  out.push("");
   for (const p of result.picks) {
     out.push(`${p.rank}. ${p.name}  [score ${p.score.toFixed(2)}, must-haves ${pct(p.mustHaveCoverage)}]`);
     out.push(`   ${p.license}${p.openSource ? "" : " (free, not open source)"}  ${p.url}`);

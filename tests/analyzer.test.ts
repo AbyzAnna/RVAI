@@ -42,7 +42,7 @@ describe("keyword analyzer", () => {
   });
 
   it("detects an open-source-only request and an unknown product", () => {
-    const p = analyzeWithKeywords("open source only alternative to Figma", catalog);
+    const p = analyzeWithKeywords("open source only alternative to Canva", catalog);
     expect(p.openSourceOnly).toBe(true);
     expect(p.targetProductId).toBeNull();
     expect(p.mustHaves).toEqual([]);

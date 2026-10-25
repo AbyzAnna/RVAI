@@ -22,12 +22,15 @@ The goal is to help people do the same job, not get the same product. RVAI is an
 | Feature comparison | `src/compare.ts` | Plain deterministic code: must-haves 55%, nice-to-haves 20%, vibe 10%, platform 10%, learning curve 5%; coverage weighted by feature weight, with full 1, plug-in 0.75, partial 0.5 |
 | Recommendations | `src/recommend.ts` | Top 3 picks with gaps and workarounds, official discounts, build plan under 70% coverage |
 | Guardrails | `src/guardrails.ts` | Refuses piracy, license bypass, reverse engineering, asset ripping and cheats; audits every outgoing link and string |
-| Seed catalog | `data/catalog.json`, `catalog.schema.json` | 11 paid products across creative, office, audio, video, engineering, 3D and games; swap it with `--catalog` or `RVAI_CATALOG` |
+| Live discovery | `src/discover.ts` | For requests outside the catalog: Claude suggests alternatives, and only those with a safe https link that loads are shown, labeled as not human-reviewed |
+| Starter kit | `src/scaffold.ts` | `--scaffold DIR` writes a brief, clean-room rules, a credits file and a license note for an original project |
+| Web page | `web/index.html`, `src/server.ts` | `npm run web`; same pipeline as the CLI |
+| Seed catalog | `data/catalog.json`, `catalog.schema.json` | 15 paid products across creative, office, audio, video, engineering, 3D, game development, security and games; swap it with `--catalog` or `RVAI_CATALOG` |
 | CLI | `src/cli.ts` | `rvai "..."`, `--offline`, `--demo`, `--json`, `--trace` |
 
-Out of scope for now: a web UI, accounts, live web search, generating prototype code, and payments.
+Out of scope for now: accounts, generating prototype code, and payments.
 
-Next steps: a web UI, live sources (Wikidata for licenses and official sites, GitHub/GitLab for project health, Flathub/F-Droid/Homebrew/winget for install links, OpenGameArt and itch.io for openly licensed game assets), and a prototype builder that follows the clean-room rules below.
+Next steps: live sources (Wikidata for licenses and official sites, GitHub/GitLab for project health, Flathub/F-Droid/Homebrew/winget for install links, OpenGameArt and itch.io for openly licensed game assets), and a prototype builder that follows the clean-room rules below.
 
 ## Clean-room approach
 

@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "rvai": "tsx src/cli.ts",
     "demo": "tsx src/cli.ts --offline --demo",
-    "schema": "tsx scripts/write-schema.ts"
+    "schema": "tsx scripts/write-schema.ts",
+    "web": "tsx src/server.ts"
   },
   "repository": {
     "type": "git",
@@ -53,6 +54,7 @@
     "DISCLAIMER.md",
     "PLAN_AND_LEGAL.md",
     "LICENSE",
-    "catalog.schema.json"
+    "catalog.schema.json",
+    "web"
   ]
 }

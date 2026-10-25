@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RVAI</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --text: #1c1b18; --muted: #6b675e; --border: #e3e0d6;
+    --accent: #2f6b4f; --accent-soft: #e4f0e9; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --danger: #a3352b; --danger-soft: #f9e3e0; --bar: #d9d5c9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151513; --surface: #1f1e1b; --text: #ecebe6; --muted: #a29e93; --border: #34322d;
+      --accent: #7cc4a0; --accent-soft: #1f3329; --warn: #e3b55b; --warn-soft: #3a2f17;
+      --danger: #f08b80; --danger-soft: #3d201d; --bar: #3a3833;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  form { display: grid; gap: 10px; }
+  textarea { width: 100%; min-height: 84px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; resize: vertical; }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  button { border: 0; border-radius: 10px; padding: 10px 18px; background: var(--accent); color: var(--bg); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.2; cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: progress; }
+  label.toggle { color: var(--muted); font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 28px; }
+  .chip { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-family: inherit; font-size: 13px; font-weight: 400; line-height: 1.3; cursor: pointer; text-align: left; }
+  .chip:hover { border-color: var(--accent); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .card h3 { margin: 0; font-size: 18px; }
+  .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .meter { height: 6px; background: var(--bar); border-radius: 3px; overflow: hidden; margin: 6px 0 10px; }
+  .meter span { display: block; height: 100%; background: var(--accent); }
+  .why { margin: 0 0 8px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  ul.gaps { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+  ul.gaps li { font-size: 14px; }
+  .tag { display: inline-block; min-width: 76px; font-size: 12px; font-weight: 600; }
+  .tag.missing { color: var(--danger); } .tag.partial { color: var(--warn); } .tag.plugin { color: var(--accent); }
+  a { color: var(--accent); word-break: break-word; }
+  h2 { font-size: 18px; margin: 28px 0 10px; }
+  .notice { border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; }
+  .notice.refused { background: var(--danger-soft); }
+  .notice.found { background: var(--warn-soft); font-size: 14px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  ol, .plan ul { padding-left: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 4px 8px 4px 0; border-top: 1px solid var(--border); vertical-align: top; }
+  .error { color: var(--danger); }
+  footer { margin-top: 36px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>RVAI</h1>
+  <p class="lede">Tell us what you'd use expensive software or a game for. We'll find free, legal alternatives, show what each one misses, and help you plan your own tool when nothing fits.</p>
+
+  <form id="ask">
+    <textarea id="query" maxlength="500" placeholder="e.g. I need something like Photoshop for my old laptop, mostly layers and masks" required></textarea>
+    <div class="row">
+      <button id="go" type="submit">Find alternatives</button>
+      <label class="toggle"><input type="checkbox" id="offline"> Offline (keywords only, no AI)</label>
+    </div>
+  </form>
+  <div class="chips" id="examples"></div>
+
+  <section id="out" aria-live="polite"></section>
+
+  <footer>RVAI never links to cracks or pirated copies and never copies paid products. Product names belong to their owners. <a href="https://github.com/AbyzAnna/RVAI">Source on GitHub</a></footer>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const link = (url) => /^https:\/\//.test(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "";
+const pct = (n) => `${Math.round(n * 100)}%`;
+const statusText = { missing: "Missing", partial: "Partial", plugin: "Plug-in" };
+
+function renderPick(p) {
+  const gaps = p.gaps.map((g) => `<li><span class="tag ${g.status}">${statusText[g.status]}</span>${esc(g.label)}${g.workaround ? `<div class="muted">${esc(g.workaround)}</div>` : ""}</li>`).join("");
+  return `<article class="card">
+    <div class="head"><h3>${p.rank}. ${esc(p.name)}</h3>${link(p.url)}</div>
+    <div class="badges">
+      <span class="badge ${p.openSource ? "" : "warn"}">${esc(p.license)}${p.openSource ? "" : " · free, not open source"}</span>
+      <span class="badge">${pct(p.mustHaveCoverage)} of must-haves</span>
+      ${p.platformMatch ? "" : `<span class="badge warn">not on your platform</span>`}
+    </div>
+    <div class="meter" title="score ${p.score.toFixed(2)}"><span style="width:${pct(p.score)}"></span></div>
+    <p class="why">${esc(p.why)}</p>
+    ${p.notes ? `<p class="muted">${esc(p.notes)}</p>` : ""}
+    ${gaps ? `<ul class="gaps">${gaps}</ul>` : ""}
+  </article>`;
+}
+
+function renderPlan(b) {
+  return `<h2>Plan for an original tool</h2>
+  <div class="card plan">
+    <p><strong>Why:</strong> ${esc(b.reason)}</p>
+    <p>${esc(b.concept)}</p>
+    ${b.featuresToBuild.length ? `<p><strong>Build:</strong> ${b.featuresToBuild.map(esc).join(", ")}</p>` : ""}
+    <details><summary>Steps</summary><ol>${b.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></details>
+    <details><summary>Foundation</summary><ul>${b.suggestedFoundation.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></details>
+    <details><summary>Clean-room rules</summary><ul>${b.cleanRoomRules.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></details>
+    <p class="muted">Run <code>rvai --scaffold my-project "…"</code> to get these as a starter folder.</p>
+  </div>`;
+}
+
+function renderTrace(trace) {
+  return `<details class="card"><summary>How RVAI got here</summary><table>${trace.map((t) =>
+    `<tr><td>${esc(t.step)}</td><td>${esc(t.status)}</td><td>${t.ms} ms</td><td class="muted">${esc(t.detail ?? "")}</td></tr>`).join("")}</table></details>`;
+}
+
+function render({ result, trace }) {
+  if (result.status === "refused") {
+    const alts = result.legalOptions.alternatives.map((a) => `<li>${esc(a.name)} (${esc(a.license)}) ${link(a.url)}</li>`).join("");
+    const discounts = result.legalOptions.discounts.map((d) => `<li>${esc(d.name)}: ${esc(d.eligibility)}. ${link(d.url)}</li>`).join("");
+    return `<div class="notice refused"><strong>${esc(result.message)}</strong>
+      ${alts ? `<p>Free alternatives:</p><ul>${alts}</ul>` : ""}${discounts ? `<p>Official discounts:</p><ul>${discounts}</ul>` : ""}</div>${renderTrace(trace)}`;
+  }
+  const title = result.target ? `Free alternatives to ${esc(result.target.name)}` : "Nothing in our catalog matches yet";
+  const found = result.source === "discovered" ? `<div class="notice found">Found live by AI because this isn't in our catalog yet. Each link was checked, but licenses and features weren't reviewed by a person.</div>` : "";
+  const discounts = result.discounts.length ? `<h2>Want the original? Official discounts</h2><div class="card"><ul>${result.discounts.map((d) => `<li>${esc(d.name)}: ${esc(d.eligibility)}. ${link(d.url)}</li>`).join("")}</ul></div>` : "";
+  return `<h2>${title}</h2>${found}${result.picks.map(renderPick).join("")}${discounts}${result.buildPlan ? renderPlan(result.buildPlan) : ""}
+    <p class="muted">${esc(result.attribution)}</p>${renderTrace(trace)}`;
+}
+
+async function ask(query) {
+  $("go").disabled = true;
+  $("out").innerHTML = `<p class="muted">Looking for alternatives…</p>`;
+  try {
+    const res = await fetch("/api/recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, offline: $("offline").checked }) });
+    const data = await res.json();
+    $("out").innerHTML = res.ok ? render(data) : `<p class="error">${esc(data.error)}</p>`;
+  } catch (err) {
+    $("out").innerHTML = `<p class="error">Something went wrong: ${esc(err.message)}</p>`;
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+$("ask").addEventListener("submit", (e) => { e.preventDefault(); const q = $("query").value.trim(); if (q) ask(q); });
+fetch("/api/examples").then((r) => r.json()).then(({ examples }) => {
+  $("examples").innerHTML = examples.map((q) => `<button type="button" class="chip">${esc(q)}</button>`).join("");
+  $("examples").querySelectorAll(".chip").forEach((b, i) => b.addEventListener("click", () => { $("query").value = examples[i]; ask(examples[i]); }));
+});
+</script>
+</body>
+</html>

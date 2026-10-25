@@ -1,18 +1,13 @@
-import type { ZodType } from "zod";
-import {
-  analyzeWithClaude,
-  analyzeWithKeywords,
-  analyzeWithOpenRouter,
-  detectProduct,
-  hasApiCredentials,
-  hasOpenRouterKey,
-  type MessagesClient,
-} from "./analyzer/index.js";
+import { z, type ZodType } from "zod";
+import { analyzeWithClaude, analyzeWithKeywords, analyzeWithOpenRouter, detectProduct } from "./analyzer/index.js";
+import { discoverAlternatives, type UrlCheck } from "./discover.js";
+import { pickProvider, type MessagesClient } from "./llm.js";
 import { findProduct, loadCatalog } from "./catalog.js";
 import { compareAlternatives } from "./compare.js";
 import { auditOutput, checkRequest, isSafeUrl, REFUSAL_PREFIX } from "./guardrails.js";
 import { buildRecommendation } from "./recommend.js";
 import {
+  Catalog as CatalogSchema,
   FeatureMatrix,
   GoalProfile,
   Recommendation,
@@ -39,6 +34,10 @@ export interface RunOptions {
   model?: string;
   catalog?: Catalog;
   env?: NodeJS.ProcessEnv;
+  /** Look up alternatives live when a request isn't in the catalog (needs an API key). Default true. */
+  discover?: boolean;
+  /** How discovered links are checked (tests pass a fake). */
+  urlCheck?: UrlCheck;
 }
 
 export interface RunResult {
@@ -149,14 +148,8 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
   trace.push({ step: "guard-input", status: "ok", ms: 0 });
 
   // Anthropic API first (explicit client or key), then OpenRouter, then keywords.
-  const provider = opts.offline
-    ? null
-    : opts.client !== undefined || hasApiCredentials(env)
-      ? "anthropic"
-      : hasOpenRouterKey(env)
-        ? "openrouter"
-        : null;
-  const profile = await runStep(
+  const provider = opts.offline ? null : pickProvider(env, opts.client);
+  const analyzed = await runStep(
     {
       name: "analyze",
       schema: GoalProfile,
@@ -172,11 +165,37 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
     trace,
   );
 
+  // Not in the catalog: ask Claude for alternatives and keep only those whose links check out.
+  let profile = analyzed;
+  let runCatalog = catalog;
+  if (!profile.targetProductId && provider && opts.discover !== false) {
+    const found = await runStep(
+      {
+        name: "discover",
+        schema: z.object({ profile: GoalProfile, catalog: CatalogSchema }),
+        primary: async () => {
+          const d = await discoverAlternatives(
+            profile,
+            catalog,
+            { provider, client: opts.client, fetch: opts.fetch, env, model: opts.model },
+            opts.urlCheck,
+          );
+          return { profile: d.profile, catalog: { ...catalog, products: [...catalog.products, d.product] } };
+        },
+        label: provider,
+        fallback: { run: () => ({ profile, catalog }), label: "build plan only" },
+      },
+      trace,
+    );
+    profile = found.profile;
+    runCatalog = found.catalog;
+  }
+
   const matrix = await runStep(
     {
       name: "compare",
       schema: FeatureMatrix,
-      primary: () => compareAlternatives(profile, findProduct(catalog, profile.targetProductId)),
+      primary: () => compareAlternatives(profile, findProduct(runCatalog, profile.targetProductId)),
     },
     trace,
   );
@@ -185,7 +204,7 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
     {
       name: "recommend",
       schema: Recommendation,
-      primary: () => buildRecommendation(profile, matrix, catalog),
+      primary: () => buildRecommendation(profile, matrix, runCatalog),
     },
     trace,
   );

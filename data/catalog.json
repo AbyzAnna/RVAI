@@ -516,7 +516,8 @@
         "microsoft 365",
         "word",
         "excel",
-        "powerpoint"
+        "powerpoint",
+        "office"
       ],
       "category": "office",
       "vibe": [
@@ -1570,6 +1571,571 @@
             "campaign": "Play the tutorial and skirmish scenarios; community campaigns are on mod.io."
           },
           "notes": "Code is GPL-2.0-or-later; art and sound are CC BY-SA 3.0, so credit them if you reuse any."
+        }
+      ]
+    },
+    {
+      "id": "figma",
+      "name": "Figma",
+      "vendor": "Figma, Inc.",
+      "aliases": [
+        "figma",
+        "adobe xd",
+        "sketch app"
+      ],
+      "category": "creative",
+      "vibe": [
+        "modern",
+        "collaborative"
+      ],
+      "features": [
+        {
+          "id": "ui-design",
+          "label": "UI and screen design",
+          "keywords": [
+            "ui",
+            "screens",
+            "app design",
+            "mockup",
+            "mockups",
+            "wireframe",
+            "wireframes"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "prototyping",
+          "label": "Clickable prototypes",
+          "keywords": [
+            "prototype",
+            "prototypes",
+            "prototyping",
+            "clickable"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "realtime-collab",
+          "label": "Real-time collaboration",
+          "keywords": [
+            "team",
+            "collaborate",
+            "collaboration",
+            "together",
+            "multiplayer"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "components",
+          "label": "Components and design systems",
+          "keywords": [
+            "components",
+            "design system",
+            "design systems"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "dev-handoff",
+          "label": "Developer hand-off (CSS, specs)",
+          "keywords": [
+            "handoff",
+            "hand-off",
+            "css",
+            "inspect",
+            "developers"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "plugins",
+          "label": "Plug-ins",
+          "keywords": [
+            "plugin",
+            "plugins"
+          ],
+          "weight": 1
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "penpot",
+          "name": "Penpot",
+          "url": "https://penpot.app",
+          "license": "MPL-2.0",
+          "openSource": true,
+          "platforms": [
+            "web"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "ui-design": "full",
+            "prototyping": "full",
+            "realtime-collab": "full",
+            "components": "full",
+            "dev-handoff": "full",
+            "plugins": "full"
+          },
+          "vibe": [
+            "modern",
+            "collaborative",
+            "friendly"
+          ],
+          "notes": "Use the free hosted version or self-host it."
+        },
+        {
+          "id": "inkscape-ui",
+          "name": "Inkscape",
+          "url": "https://inkscape.org",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "ui-design": "partial",
+            "components": "partial",
+            "plugins": "full"
+          },
+          "vibe": [
+            "technical"
+          ],
+          "workarounds": {
+            "prototyping": "Export screens as SVG and link them in a simple HTML page.",
+            "realtime-collab": "Share the SVG files through git or a synced folder."
+          }
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Figma for Education (free for students and educators)",
+          "url": "https://www.figma.com/education/",
+          "eligibility": "Verified students and educators"
+        }
+      ]
+    },
+    {
+      "id": "unity",
+      "name": "Unity",
+      "vendor": "Unity Technologies",
+      "aliases": [
+        "unity",
+        "unreal",
+        "gamemaker",
+        "game maker"
+      ],
+      "category": "dev",
+      "vibe": [
+        "professional"
+      ],
+      "features": [
+        {
+          "id": "2d-games",
+          "label": "2D games",
+          "keywords": [
+            "2d",
+            "platformer",
+            "pixel art",
+            "sprites"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "3d-games",
+          "label": "3D games",
+          "keywords": [
+            "3d",
+            "fps",
+            "first person",
+            "open world"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "scripting",
+          "label": "Scripting",
+          "keywords": [
+            "code",
+            "coding",
+            "script",
+            "scripting",
+            "c#",
+            "programming"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "export-platforms",
+          "label": "Export to desktop, web and mobile",
+          "keywords": [
+            "export",
+            "web",
+            "mobile",
+            "android",
+            "ios",
+            "publish",
+            "itch"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "asset-store",
+          "label": "Asset library",
+          "keywords": [
+            "assets",
+            "asset store",
+            "free assets"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "visual-editor",
+          "label": "Visual scene editor",
+          "keywords": [
+            "editor",
+            "scene",
+            "level editor",
+            "drag and drop"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "godot",
+          "name": "Godot Engine",
+          "url": "https://godotengine.org",
+          "license": "MIT",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "web",
+            "android"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "2d-games": "full",
+            "3d-games": "full",
+            "scripting": "full",
+            "export-platforms": "full",
+            "asset-store": "partial",
+            "visual-editor": "full"
+          },
+          "vibe": [
+            "friendly",
+            "lightweight",
+            "creative"
+          ],
+          "workarounds": {
+            "asset-store": "Use the Godot Asset Library plus CC0 packs from OpenGameArt or Kenney."
+          }
+        },
+        {
+          "id": "love2d",
+          "name": "L\u00d6VE",
+          "url": "https://love2d.org",
+          "license": "Zlib",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "android",
+            "ios"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "2d-games": "full",
+            "scripting": "full",
+            "export-platforms": "partial"
+          },
+          "vibe": [
+            "simple",
+            "playful",
+            "lightweight"
+          ],
+          "notes": "A small Lua framework for 2D games; no visual editor."
+        }
+      ]
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "vendor": "Notion Labs",
+      "aliases": [
+        "notion",
+        "evernote",
+        "confluence"
+      ],
+      "category": "office",
+      "vibe": [
+        "clean",
+        "modern"
+      ],
+      "features": [
+        {
+          "id": "notes",
+          "label": "Notes and documents",
+          "keywords": [
+            "notes",
+            "note",
+            "docs",
+            "writing",
+            "journal"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "databases",
+          "label": "Databases, tables and boards",
+          "keywords": [
+            "database",
+            "databases",
+            "table",
+            "kanban",
+            "board",
+            "tracker"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "sync",
+          "label": "Sync across devices",
+          "keywords": [
+            "sync",
+            "phone",
+            "devices",
+            "mobile"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "collab",
+          "label": "Sharing and collaboration",
+          "keywords": [
+            "share",
+            "team",
+            "collaborate",
+            "together"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "templates",
+          "label": "Templates",
+          "keywords": [
+            "template",
+            "templates"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "offline",
+          "label": "Works offline",
+          "keywords": [
+            "offline",
+            "local",
+            "privacy",
+            "private"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "appflowy",
+          "name": "AppFlowy",
+          "url": "https://appflowy.com",
+          "license": "AGPL-3.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "android",
+            "ios"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "notes": "full",
+            "databases": "full",
+            "sync": "full",
+            "collab": "partial",
+            "templates": "partial",
+            "offline": "full"
+          },
+          "vibe": [
+            "clean",
+            "modern",
+            "friendly"
+          ]
+        },
+        {
+          "id": "logseq",
+          "name": "Logseq",
+          "url": "https://logseq.com",
+          "license": "AGPL-3.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "android",
+            "ios"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "notes": "full",
+            "databases": "partial",
+            "offline": "full",
+            "templates": "full"
+          },
+          "vibe": [
+            "minimal",
+            "technical"
+          ],
+          "workarounds": {
+            "sync": "Keep the graph folder in Syncthing or git.",
+            "collab": "Share the graph through a git repository."
+          }
+        }
+      ]
+    },
+    {
+      "id": "1password",
+      "name": "1Password",
+      "vendor": "AgileBits",
+      "aliases": [
+        "1password",
+        "lastpass",
+        "dashlane",
+        "password manager"
+      ],
+      "category": "security",
+      "vibe": [
+        "clean",
+        "simple"
+      ],
+      "features": [
+        {
+          "id": "vault",
+          "label": "Encrypted password vault",
+          "keywords": [
+            "password",
+            "passwords",
+            "vault",
+            "logins"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "browser-autofill",
+          "label": "Browser autofill",
+          "keywords": [
+            "autofill",
+            "browser",
+            "extension",
+            "chrome",
+            "firefox"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "cross-device-sync",
+          "label": "Sync across devices",
+          "keywords": [
+            "sync",
+            "phone",
+            "devices",
+            "mobile"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "sharing",
+          "label": "Share with family or team",
+          "keywords": [
+            "share",
+            "family",
+            "team"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "passkeys",
+          "label": "Passkeys and 2FA codes",
+          "keywords": [
+            "passkey",
+            "passkeys",
+            "2fa",
+            "totp",
+            "authenticator"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "bitwarden",
+          "name": "Bitwarden",
+          "url": "https://bitwarden.com",
+          "license": "GPL-3.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "web",
+            "android",
+            "ios"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "vault": "full",
+            "browser-autofill": "full",
+            "cross-device-sync": "full",
+            "sharing": "partial",
+            "passkeys": "full"
+          },
+          "vibe": [
+            "clean",
+            "simple",
+            "friendly"
+          ],
+          "notes": "The free plan covers unlimited passwords on unlimited devices; sharing with more than one other person needs a paid or self-hosted plan."
+        },
+        {
+          "id": "keepassxc",
+          "name": "KeePassXC",
+          "url": "https://keepassxc.org",
+          "license": "GPL-2.0-only OR GPL-3.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "vault": "full",
+            "browser-autofill": "full",
+            "passkeys": "full",
+            "cross-device-sync": "partial"
+          },
+          "vibe": [
+            "technical",
+            "private"
+          ],
+          "workarounds": {
+            "cross-device-sync": "Keep the database file in a synced folder and use KeePassDX (Android) or Strongbox (iOS) to open it.",
+            "sharing": "Share a separate database file and its password with the person."
+          }
         }
       ]
     }
