@@ -521,40 +521,46 @@ input:focus,textarea:focus,select:focus{outline:0;border-color:var(--green);box-
    Near-black with phosphor greens, pixel display headlines over a clean sans body, glassy cards that let the
    0/1 rain (ui/matrix-rain.js, a canvas behind everything) show through, and light pill buttons. */
 :root{
-  --black:#010402;--deep:#002b0e;--forest:#00591d;--green:#00ff41;--green-hi:#5cff80;--mint:#b6ffc6;--aqua:#3dff8a;
-  --ink:#e8ffec;--ink-2:#a9d9b3;--ink-3:#719d7b;
+  --black:#050807;--deep:#0d2a18;--forest:#1a4d2e;--green:#4ade80;--green-hi:#86efac;--mint:#bbf7d0;--aqua:#6ee7b7;
+  --ink:#f1f5f2;--ink-2:#cbd5cf;--ink-3:#9aa8a0;
   --surface:rgba(2,12,5,.72);--surface-2:rgba(4,20,9,.72);--surface-3:rgba(6,30,13,.8);
-  --line:rgba(0,255,65,.13);--line-2:rgba(0,255,65,.26);--line-green:rgba(0,255,65,.55);
-  --font-display:var(--mono)}
+  --line:rgba(187,247,208,.10);--line-2:rgba(187,247,208,.18);--line-green:rgba(74,222,128,.45);
+  --font-display:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 html{background:var(--black)}
-body{background:radial-gradient(900px 520px at 80% -10%,rgba(0,255,65,.10),transparent 60%),radial-gradient(760px 520px at -10% 45%,rgba(0,89,29,.30),transparent 62%),var(--black)}
-#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.9}
-html[data-route=innovate] #matrix-rain{opacity:.28}
+body{background:radial-gradient(900px 520px at 80% -10%,rgba(74,222,128,.06),transparent 60%),var(--black)}
+/* the rain is a quiet texture, not a light show: dim on pages, barely there behind the chat */
+#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.35;filter:saturate(.6)}
+html[data-route=innovate] #matrix-rain{opacity:.1}
 body>*:not(#matrix-rain):not(.sprite){position:relative;z-index:1}
 .global-nav{position:relative;z-index:30}
 h1,h2,.section-title,.page-head .pixel-title{font-family:var(--font-display);letter-spacing:0}
-h1{text-shadow:0 0 22px rgba(0,255,65,.28)}
-/* bitmap-style headlines without a web font: bold monospace through a fine pixel grid (no remote assets) */
-.about-hero h1,.welcome h1{font-weight:800;letter-spacing:-1px;-webkit-mask-image:repeating-linear-gradient(0deg,#000 0 3px,transparent 3px 3.6px),repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 3.6px);-webkit-mask-composite:source-in;mask-image:repeating-linear-gradient(0deg,#000 0 3px,transparent 3px 3.6px),repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 3.6px);mask-composite:intersect}
+h1{text-shadow:none;letter-spacing:-.5px}
 h2,.section-title{font-weight:700;letter-spacing:-.5px}
-.about-hero h1 .grad-text,.welcome h1 span{background-image:linear-gradient(92deg,#00ff41,#5cff80 45%,#b6ffc6)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
-.about-hero h1{font-size:clamp(26px,3vw,42px);line-height:1.1}
+.about-hero h1 .grad-text,.welcome h1 span{background-image:linear-gradient(92deg,#4ade80,#86efac 55%,#bbf7d0)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+.about-hero h1{font-size:clamp(30px,3.6vw,48px);line-height:1.1;font-weight:700}
+.about-hero .lead{font-size:18px;color:var(--ink-2);max-width:30em}
 .welcome h1{font-size:clamp(26px,3.2vw,40px)}
 .eyebrow,.section-chip,.hero-kicker{color:var(--green)}
 /* glass surfaces: translucent so the rain reads as depth behind them */
 .about-hero,.panel-dark,.alt-card,.evidence-slot,.empty-state,.honest-banner,.start-dialog,.composer,.project-workspace,.message.user .message-body{
-  background:linear-gradient(160deg,rgba(6,28,12,.62),rgba(1,8,3,.74))!important;border:1px solid var(--line)!important;
+  background:linear-gradient(160deg,rgba(14,26,19,.86),rgba(8,14,11,.9))!important;border:1px solid var(--line)!important;
   -webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2);box-shadow:0 24px 60px -30px rgba(0,0,0,.9),inset 0 1px 0 rgba(182,255,198,.05)}
-.alt-card:hover{border-color:var(--line-green)!important;box-shadow:0 0 0 1px rgba(0,255,65,.18),0 18px 50px -22px rgba(0,255,65,.35)}
+.alt-card:hover{border-color:var(--line-green)!important;box-shadow:0 14px 40px -24px rgba(0,0,0,.9)}
 .sidebar,.topbar,.chat-pane,.global-nav{background:rgba(1,6,2,.72)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .chat-pane{background:rgba(1,5,2,.78)!important}
 .composer-wrap{background:linear-gradient(0deg,rgba(1,4,2,.92) 80%,transparent)!important}
 /* light pill buttons with a glow, like the reference */
-.btn-primary,.gnav-try,.send{border-radius:999px!important;background:#ecfff0!important;color:#011a07!important;border:1px solid #ecfff0!important;box-shadow:0 0 0 0 rgba(0,255,65,0),0 10px 26px -14px rgba(0,255,65,.6)}
-.btn-primary:hover:not(:disabled),.gnav-try:hover,.send:hover{background:#fff!important;box-shadow:0 0 26px rgba(0,255,65,.45)!important}
-.btn-primary .ico,.gnav-try .ico{color:#011a07}
+.btn-primary,.gnav-try,.send{border-radius:999px!important;background:var(--green)!important;color:#05150b!important;border:1px solid var(--green)!important;box-shadow:none!important}
+.btn-primary:hover:not(:disabled),.gnav-try:hover,.send:hover{background:var(--green-hi)!important;border-color:var(--green-hi)!important}
+.btn-primary .ico,.gnav-try .ico{color:#05150b}
 .btn-secondary,.gnav-start,.filter-chip,.small-button,.quick-replies button,.chip{border-radius:999px}
-.filter-chip[aria-pressed=true]{background:var(--green)!important;color:#011a07!important;border-color:var(--green)!important}
+.filter-chip[aria-pressed=true]{background:var(--green)!important;color:#05150b!important;border-color:var(--green)!important}
+/* simpler navigation and less reading: no account controls, no long story sections */
+.gnav-start,#demo-status,.beta,#choose-service{display:none!important}
+.filter-select{border-radius:999px;padding:7px 14px;font-size:13px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
+.gnav-try{padding:10px 22px;font-size:14px}
+.about-duo,.make-panel,.community-band{display:none!important}
+.alt-card p,.message-text,.workspace-content p,.workspace-content li{color:var(--ink-2)}
 .tag,.badge{font-family:var(--mono)}
 a{color:var(--green-hi)}
 
