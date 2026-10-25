@@ -1,6 +1,8 @@
 // RevAI chat shell. Scripted local interview + real catalog discovery (mirrors catalog/__init__.py 0.1).
-// No AI generation happens here. Live mode sends the 0.2-draft PROPOSED envelope (docs/conversational-product-contract.md).
+// No AI generation happens here. Live mode talks to Anna's POST /api/recommend (ui/rvai-adapter.js); any other
+// endpoint gets the 0.2-draft PROPOSED envelope (docs/conversational-product-contract.md).
 import { createWebsiteTemplate } from './website-template.js';
+import { isRecommendEndpoint, recommendQuery, recommendError, fromRecommend } from './rvai-adapter.js';
 const $ = id => document.getElementById(id);
 const DATA_BASE = '../data/';
 const CONTRACT = '0.2-draft';
@@ -128,7 +130,8 @@ function request() {
 async function sendLive(text) {
   setBusy(true);
   try {
-    const data = await callAgent(request());
+    const url = endpoint();
+    const data = isRecommendEndpoint(url) ? fromRecommend(await callAgent(url, { query: recommendQuery(state.messages) })) : await callAgent(url, request());
     agentStatus = 'ok';
     applyAgent(data);
   } catch (e) {
@@ -137,16 +140,22 @@ async function sendLive(text) {
       { tag: 'Connection error', error: true, log: false, extras: [actions([['Retry', () => send(text, { retry: true })]])] });
   } finally { setBusy(false); updateMode(); renderAll(); $('message-input').focus(); }
 }
-async function callAgent(body) {
+// Relative paths (e.g. /api/recommend through scripts/dev_server.py) resolve against the page.
+function endpoint() {
+  const raw = $('api-url').value.trim();
   let url;
-  try { url = new URL($('api-url').value.trim()); } catch { throw new Error('endpoint URL is missing or invalid'); }
+  try { if (!raw) throw new Error(); url = new URL(raw, location.href); } catch { throw new Error('endpoint URL is missing or invalid'); }
   if (!/^https?:$/.test(url.protocol)) throw new Error('endpoint must use http or https');
+  return url;
+}
+async function callAgent(url, body) {
   const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 60000);
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
     let data = null;
     try { data = await res.json(); } catch { if (res.ok) throw new Error('response was not valid JSON'); }
     if (data?.error?.message) throw new Error(`${data.error.code || 'error'}: ${data.error.message}`);
+    if (recommendError(data)) throw new Error(`${res.status === 500 ? 'backend step failed' : `HTTP ${res.status}`}: ${recommendError(data)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`.trim());
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('response was not a JSON object');
     if (data.stage === 'error') throw new Error('agent reported stage "error" without an error message');
@@ -175,7 +184,7 @@ function applyAgent(d) {
   const notes = [Array.isArray(d.limitations) && d.limitations.filter(isStr).length ? `Limitations: ${d.limitations.filter(isStr).join('; ')}` : null,
     ignored.length ? `Ignored invalid/unsupported fields: ${ignored.join(', ')}` : null].filter(Boolean);
   if (!text) return bot(`The agent responded, but with no assistant_message or clarifying_question.prompt.${notes.length ? '\n' + notes.join('\n') : ''}`, { tag: 'Agent response problem', error: true, log: false });
-  const tag = { refused: 'Selected agent · declined', needs_info: 'Selected agent · needs more information', clarifying: 'Selected agent · question' }[d.stage] || `Selected agent · ${isStr(d.stage) ? d.stage : 'reply'}`;
+  const tag = { refused: 'Selected agent · declined', needs_info: 'Selected agent · needs more information', clarifying: 'Selected agent · question', recommended: 'RVAI backend · catalog recommendation', discovered: 'RVAI backend · found live, not reviewed by a person' }[d.stage] || `Selected agent · ${isStr(d.stage) ? d.stage : 'reply'}`;
   bot(notes.length ? `${text}\n\n${notes.join('\n')}` : text, { tag, error: d.stage === 'refused',
     extras: steps ? [el('div', { class: 'note' }, el('b', { text: 'Reported by connected agent' }), el('ul', {}, steps.map(s => el('li', { text: s.status ? `${s.label} — ${s.status}` : s.label }))))] : [] });
   if (Array.isArray(q?.options)) setQuick(q.options.filter(isStr).map(o => [o, () => send(o)]));
@@ -491,6 +500,7 @@ function altCard(m) {
     el('div', { class: 'tags' }, [chosen ? `Selected base · ${ROUTES[state.route][0]}` : null, a.license || 'license not declared', a.pricing_type && friendly(a.pricing_type), a.verification_status && friendly(a.verification_status), m.compatibility_status && friendly(m.compatibility_status)].filter(Boolean).map(t => el('span', { class: 'tag', text: t }))),
     (a.features || []).map(f => el('div', { class: 'feature-line' }, `${sup.includes(f) ? '✓ Requested · ' : '• '}${featLabel(f)} — `, link(a.feature_evidence?.[f], 'evidence'))),
     unk.map(f => el('div', { class: 'feature-line unknown', text: `? Not evidenced in catalog (unverified): ${featLabel(f)}` })),
+    (m.summary_lines || []).filter(isStr).map(t => el('div', { class: `feature-line${/^(Missing|Partial)/.test(t) ? ' unknown' : ''}`, text: t })),
     catalogView || state.provenance.discovery !== 'scripted_demo' ? null : el('div', { class: 'message-actions' },
       el('button', { type: 'button', class: `small-button${chosen && state.route === 'find' ? ' primary' : ''}`, 'aria-pressed': String(chosen && state.route === 'find'), text: 'Use this project', onclick: () => chooseRoute('find', a.id) }),
       el('button', { type: 'button', class: `small-button${chosen && state.route === 'extend' ? ' primary' : ''}`, 'aria-pressed': String(chosen && state.route === 'extend'), text: 'Extend this project', onclick: () => chooseRoute('extend', a.id) })),
@@ -508,7 +518,7 @@ function renderAlternatives() {
   if (!d) return put(p, el('h3', { text: 'Alternatives' }), el('p', { class: 'note', text: 'Answer the questions in the chat and I’ll search the curated catalog here.' }));
   const name = projName;
   put(p,
-    el('h3', { text: `${catLabel()} · ${d.recommendations.length ? `${d.recommendations.length} option${d.recommendations.length === 1 ? '' : 's'}` : friendly('no_match')}` }),
+    el('h3', { text: `${isStr(d.title) ? d.title : catLabel()} · ${d.recommendations.length ? `${d.recommendations.length} option${d.recommendations.length === 1 ? '' : 's'}` : friendly('no_match')}` }),
     el('p', { class: 'note', text: srcLabel(state.provenance.discovery) }),
     el('div', { class: 'route-cards' }, Object.entries(ROUTES).map(([r, [t, desc]]) =>
       el('button', { type: 'button', class: `route-card${state.route === r ? ' selected' : ''}`, 'aria-pressed': String(state.route === r), disabled: r !== 'create' && !d.recommendations.length, onclick: () => chooseRoute(r) }, el('b', { text: t }), el('span', { text: desc })))),
@@ -619,7 +629,7 @@ document.querySelectorAll('.workspace-tabs [role=tab]').forEach((t, i, all) => {
   });
 });
 $('live-mode').addEventListener('change', () => { agentStatus = 'off'; updateMode(); });
-$('api-url').value = store.get('revai.apiUrl') || '';
+$('api-url').value = store.get('revai.apiUrl') || '/api/recommend';
 $('api-url').addEventListener('change', () => { store.set('revai.apiUrl', $('api-url').value.trim()); if (liveMode()) { agentStatus = 'selected'; updateMode(); } });
 
 async function loadData() {
