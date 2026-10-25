@@ -651,7 +651,11 @@ async function loadData() {
     const [tax, alts] = await Promise.all([get('taxonomy.json'), get('alternatives.json')]);
     if (!Array.isArray(tax?.categories) || !Array.isArray(alts)) throw new Error('catalog files have an unexpected shape');
     taxonomy = tax; catalog = alts;
-    $('catalog-size').textContent = String(catalog.length);
+    // Same count as the Alternatives page: reviewed entries plus the backend's seed catalog (deduplicated by site).
+    const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+    const seed = await get('catalog.json').catch(() => null);
+    const sites = new Set([...alts.map(a => host(a.official_url)), ...(seed?.products || []).flatMap(p => p.alternatives.map(a => host(a.url)))]);
+    $('catalog-size').textContent = String(sites.size);
   } catch (e) {
     dataError = e.message;
     $('catalog-size').textContent = '!';

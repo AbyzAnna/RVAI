@@ -1,6 +1,6 @@
 // RVAI global shell: four hash-routed sections (About / Alternatives / Innovate / RVAI OpenSource),
 // prototype sign-up + preview-demo gate, try-Innovate-first shortcut, service chooser, third-party catalog
-// page, Innovate handoff and decorative motion (reveal, hero tilt, binary rain).
+// page, Innovate handoff and decorative motion (reveal, hero tilt). The 0/1 rain lives in matrix-rain.js.
 // UI-only: no accounts, no storage, no network beyond reading the static catalog files. Real sign-up,
 // authorization and search belong to Anna's backend. Talks to app.js only through existing element IDs.
 export const ROUTES = ['about', 'alternatives', 'innovate', 'opensource'];
@@ -103,7 +103,7 @@ function init() {
   // ---------- router ----------
   function show(route, focus) {
     current = route;
-    document.documentElement.dataset.route = route; // CSS hook: binary rain is off inside Innovate
+    document.documentElement.dataset.route = route; // CSS hook: the rain dims inside Innovate
     document.querySelectorAll('[data-view]').forEach(v => { const on = v.dataset.view === route; v.hidden = !on; v.inert = !on; });
     document.querySelectorAll('#global-nav [data-route]').forEach(a => {
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -312,27 +312,7 @@ function init() {
     hero.addEventListener('pointerleave', () => { canvas.style.setProperty('--tx', 0); canvas.style.setProperty('--ty', 0); });
   }
 
-  // Binary rain: decorative columns of 0/1 behind the page views. aria-hidden, pointer-events none, low opacity,
-  // CSS-animated (transform only, no JS loop). Not created under reduced motion; CSS also hides it if the setting
-  // changes later, and inside Innovate so the chat stays clean.
-  function initRain() {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const COLS = 34, ROWS = 56;
-    const bits = () => Array.from({ length: ROWS }, () => (Math.random() < 0.5 ? '0' : '1')).join('\n');
-    const rain = el('div', { class: 'binary-rain', 'aria-hidden': 'true' });
-    for (let i = 0; i < COLS; i++) {
-      const b = bits(), col = el('span', { text: `${b}\n${b}` }); // doubled so the -50% → 0 loop is seamless
-      col.style.setProperty('--x', `${((i + Math.random() * 0.6) / COLS * 100).toFixed(2)}%`);
-      col.style.setProperty('--dur', `${(11 + Math.random() * 13).toFixed(1)}s`);
-      col.style.setProperty('--delay', `${(-Math.random() * 24).toFixed(1)}s`);
-      col.style.setProperty('--o', (0.35 + Math.random() * 0.65).toFixed(2));
-      rain.append(col);
-    }
-    document.body.prepend(rain);
-  }
-
   // ---------- boot: fresh URL (no hash) lands on About ----------
-  initRain();
   initMotion();
   renderCatalog();
   loadCatalog();
