@@ -55,7 +55,7 @@ function el(tag, props = {}, ...kids) {
   return n;
 }
 function link(url, text) {
-  if (!url) return el('span', { text: `${text}: no source` });
+  if (!url) return null; // nothing recorded: show nothing instead of a loud placeholder
   try {
     const u = new URL(url);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('protocol');
@@ -166,6 +166,40 @@ async function callAgent(url, body) {
 }
 const validDiscovery = d => d && typeof d === 'object' && Array.isArray(d.recommendations) && d.recommendations.every(m => isStr(m?.project?.name)) && (d.excluded == null || Array.isArray(d.excluded));
 const validPlan = p => p && typeof p === 'object' && Array.isArray(p.steps) && p.steps.every(s => isStr(s?.title));
+// ---------- visual replies: cards, chips and badges instead of a wall of text ----------
+const RISK_LABEL = { high: 'High risk', medium: 'Check this', low: 'Low risk' };
+const hostName = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+function pickTile(p, i) {
+  const pctTxt = p.coverage == null ? null : `${Math.round(p.coverage * 100)}%`;
+  return el('article', { class: 'pick-card' },
+    el('div', { class: 'pick-head' },
+      el('span', { class: 'pick-avatar', 'aria-hidden': 'true', text: (p.name.match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase() }),
+      el('div', { class: 'pick-title' }, el('b', { text: `${i + 1}. ${p.name}` }), p.url ? el('small', { text: hostName(p.url) }) : null),
+      pctTxt ? el('span', { class: 'pick-pct', text: pctTxt, title: 'Share of your must-have features' }) : null),
+    pctTxt ? el('div', { class: 'cov-bar', role: 'img', 'aria-label': `Covers ${pctTxt} of your must-haves` }, el('span', { style: `width:${pctTxt}` })) : null,
+    el('div', { class: 'chip-row' },
+      el('span', { class: `chip-tag${p.openSource ? '' : ' warn'}`, text: p.openSource ? p.license : `${p.license} · not open source` }),
+      el('span', { class: `chip-tag${p.platformMatch ? '' : ' warn'}`, text: p.platformMatch ? 'Runs on your device' : 'Platform not confirmed' })),
+    p.gaps.length ? el('ul', { class: 'pick-gaps' }, p.gaps.map(g => el('li', {}, el('span', { class: `gap-dot ${g.status}`, 'aria-hidden': 'true' }), `${g.status === 'missing' ? 'Missing' : g.status === 'plugin' ? 'Via plug-in' : 'Partial'}: ${g.label}`))) : null,
+    p.url ? el('a', { class: 'small-button primary pick-open', href: p.url, target: '_blank', rel: 'noopener noreferrer', text: 'Open official site ↗' }) : null);
+}
+function visualReply(v, steps) {
+  const parts = [];
+  if (v.live) parts.push(el('div', { class: 'callout info', text: 'Found live by AI. Links were checked; licenses weren’t reviewed by a person.' }));
+  if (v.picks.length) parts.push(el('div', { class: 'pick-grid' }, v.picks.map(pickTile)));
+  if (v.discounts.length) parts.push(el('div', { class: 'callout discount' }, el('b', { text: 'Want the original? Official discounts' }),
+    el('ul', {}, v.discounts.map(dc => el('li', {}, dc.url ? el('a', { href: dc.url, target: '_blank', rel: 'noopener noreferrer', text: dc.name }) : dc.name, dc.eligibility ? el('small', { text: ` · ${dc.eligibility}` }) : null)))));
+  if (v.risks.length) parts.push(el('div', { class: 'risk-list' }, el('b', { text: 'Risks to check' }),
+    v.risks.map(t => el('div', { class: `risk-item sev-${t.severity}` }, el('span', { class: 'risk-badge', text: RISK_LABEL[t.severity] || t.severity }), el('span', {}, el('strong', { text: t.subject }), ` ${t.advice}`)))));
+  if (v.plan) parts.push(el('div', { class: 'callout plan' }, el('b', { text: 'Nothing free covers enough, so here’s a plan for your own tool' }), el('p', { text: v.plan.reason }),
+    el('div', { class: 'message-actions' },
+      el('button', { type: 'button', class: 'small-button primary', text: 'Download plan (.md)', onclick: () => download('rvai-plan.md', v.plan.markdown, 'text/markdown') }),
+      el('button', { type: 'button', class: 'small-button', text: 'Open the Plan tab', onclick: () => openWorkspace('plan') }))));
+  if (steps) parts.push(el('details', { class: 'agent-steps' }, el('summary', { text: `How RVAI got this · ${steps.length} steps` }),
+    el('ol', {}, steps.map(s => el('li', { class: /fallback|failed|blocked/.test(s.status || '') ? 'warn' : '' }, el('span', { text: s.label }), s.status ? el('small', { text: s.status }) : null)))));
+  return parts;
+}
+
 function applyAgent(d) {
   const q = d.clarifying_question;
   const text = isStr(d.assistant_message) ? d.assistant_message : isStr(q?.prompt) ? q.prompt : null;
@@ -185,8 +219,12 @@ function applyAgent(d) {
     ignored.length ? `Ignored invalid/unsupported fields: ${ignored.join(', ')}` : null].filter(Boolean);
   if (!text) return bot(`The agent responded, but with no assistant_message or clarifying_question.prompt.${notes.length ? '\n' + notes.join('\n') : ''}`, { tag: 'Agent response problem', error: true, log: false });
   const tag = { refused: 'Selected agent · declined', needs_info: 'Selected agent · needs more information', clarifying: 'Selected agent · question', recommended: 'RVAI backend · catalog recommendation', discovered: 'RVAI backend · found live, not reviewed by a person' }[d.stage] || `Selected agent · ${isStr(d.stage) ? d.stage : 'reply'}`;
-  bot(notes.length ? `${text}\n\n${notes.join('\n')}` : text, { tag, error: d.stage === 'refused',
-    extras: steps ? [el('div', { class: 'note' }, el('b', { text: 'Reported by connected agent' }), el('ul', {}, steps.map(s => el('li', { text: s.status ? `${s.label} — ${s.status}` : s.label }))))] : [] });
+  if (d.visual && typeof d.visual === 'object' && Array.isArray(d.visual.picks)) {
+    bot(d.visual.headline || text, { tag, error: d.stage === 'refused', extras: visualReply(d.visual, steps) });
+  } else {
+    bot(notes.length ? `${text}\n\n${notes.join('\n')}` : text, { tag, error: d.stage === 'refused',
+      extras: steps ? [el('details', { class: 'agent-steps' }, el('summary', { text: `How RVAI got this · ${steps.length} steps` }), el('ol', {}, steps.map(s => el('li', {}, el('span', { text: s.label }), s.status ? el('small', { text: s.status }) : null))))] : [] });
+  }
   if (Array.isArray(q?.options)) setQuick(q.options.filter(isStr).map(o => [o, () => send(o)]));
   if (state.discovery || state.agentPlan) openWorkspace(state.agentPlan ? 'plan' : 'alternatives');
 }
@@ -512,8 +550,9 @@ function altCard(m) {
 }
 function renderAlternatives() {
   const p = $('panel-alternatives'), d = state.discovery;
-  if (catalogView) return put(p, el('h3', { text: `Full catalog · ${catalog.length} entries` }),
-    el('p', { text: 'Source-reviewed, not runtime-tested. Evidence links open the original sources.' }),
+  if (catalogView) return put(p, el('h3', { text: `Reviewed picks · ${catalog.length}` }),
+    el('p', { text: 'Hand-checked against their sources.' }),
+    el('a', { class: 'small-button primary', href: '#alternatives', text: `See all ${$('catalog-size').textContent} in Find software →` }),
     catalog.map(a => altCard({ project: a, warnings: a.notes })));
   if (!d) return put(p, el('h3', { text: 'Alternatives' }), el('p', { class: 'note', text: 'Answer the questions in the chat and I’ll search the curated catalog here.' }));
   const name = projName;

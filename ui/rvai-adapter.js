@@ -67,6 +67,32 @@ function buildPlanSteps(bp) {
   ];
 }
 
+const safeUrl = u => { try { const x = new URL(u); return x.protocol === 'https:' ? x.href : null; } catch { return null; } };
+const discountItems = ds => (Array.isArray(ds) ? ds : []).filter(d => isStr(d?.name)).map(d => ({ name: d.name, eligibility: d.eligibility || '', url: safeUrl(d.url) }));
+
+/** The build plan as a Markdown file the person can download, instead of being told where to find it. */
+export function buildPlanMarkdown(bp, target) {
+  const list = xs => (xs || []).map(x => `- ${x}`).join('\n');
+  return [`# Plan for an original tool${target ? ` (instead of ${target})` : ''}`, '', `**Why:** ${bp.reason}`, '', bp.concept, '',
+    '## Features to build', list(bp.featuresToBuild), '', '## Foundation', list(bp.suggestedFoundation), '',
+    '## Steps', (bp.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n'), '', '## Clean-room rules', list(bp.cleanRoomRules), ''].join('\n');
+}
+
+// What the chat draws as cards, chips and badges (app.js visualReply). Text stays in assistant_message for logs.
+function visualOf(r) {
+  const items = Array.isArray(r.threats?.items) ? r.threats.items : [];
+  return {
+    headline: r.target?.name ? `Free alternatives to ${r.target.name}` : r.picks.length ? 'Free alternatives' : 'Nothing free fits well yet',
+    live: r.source === 'discovered',
+    picks: r.picks.map(p => ({ name: p.name, url: safeUrl(p.url), license: p.license, openSource: !!p.openSource, coverage: p.mustHaveCoverage,
+      platformMatch: !!p.platformMatch, gaps: (p.gaps || []).slice(0, 3).map(g => ({ label: g.label, status: g.status })), notes: isStr(p.notes) ? p.notes : null })),
+    discounts: discountItems(r.discounts),
+    risks: items.slice(0, 4).map(t => ({ severity: t.severity, subject: t.subject, advice: t.advice })),
+    riskLevel: r.threats?.level || null,
+    plan: r.buildPlan ? { reason: r.buildPlan.reason, markdown: buildPlanMarkdown(r.buildPlan, r.target?.name) } : null
+  };
+}
+
 /** Convert Anna's {result, trace} into the envelope applyAgent() understands. Throws on an unknown shape. */
 export function fromRecommend(data) {
   const r = data?.result, steps = traceSteps(data?.trace);
@@ -76,7 +102,9 @@ export function fromRecommend(data) {
       stage: 'refused', route: null, steps,
       assistant_message: [r.message, discounts.length ? `Official discounts:\n${discounts.map(d => `• ${d}`).join('\n')}` : null].filter(Boolean).join('\n\n'),
       discovery: alts.length ? { title: 'Legal options', recommendations: alts.map(legalCard), excluded: [], limitations: [`Declined: ${r.reason}`] } : null,
-      plan: null
+      plan: null,
+      visual: { refused: true, headline: r.message, live: false, picks: alts.map(a => ({ name: a.name, url: safeUrl(a.url), license: a.license, openSource: a.license !== 'Freeware', coverage: null, platformMatch: true, gaps: [], notes: null })),
+        discounts: discountItems(r.legalOptions?.discounts), risks: [], riskLevel: null, plan: null }
     };
   }
   if (r?.status !== 'ok' || !Array.isArray(r.picks)) throw new Error('response was not an RVAI recommendation or refusal');
@@ -101,6 +129,7 @@ export function fromRecommend(data) {
       recommendations: r.picks.map(p => pickCard(p, r.source)), excluded: [],
       limitations: [r.attribution, live ? 'Found live by Claude: links were checked, but no person has reviewed these entries.' : null].filter(isStr)
     },
-    plan: r.buildPlan ? { steps: buildPlanSteps(r.buildPlan) } : null
+    plan: r.buildPlan ? { steps: buildPlanSteps(r.buildPlan) } : null,
+    visual: visualOf(r)
   };
 }

@@ -529,9 +529,9 @@ input:focus,textarea:focus,select:focus{outline:0;border-color:var(--green);box-
 html{background:var(--black)}
 body{background:radial-gradient(900px 520px at 80% -10%,rgba(74,222,128,.06),transparent 60%),var(--black)}
 /* the rain is a quiet texture, not a light show: dim on pages, barely there behind the chat */
-#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.35;filter:saturate(.6)}
-html[data-route=innovate] #matrix-rain{opacity:.1}
-body>*:not(#matrix-rain):not(.sprite){position:relative;z-index:1}
+#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.62;filter:saturate(.8)}
+html[data-route=innovate] #matrix-rain{opacity:.2}
+body>*:not(#matrix-rain):not(.sprite):not(.rain-toggle){position:relative;z-index:1}
 .global-nav{position:relative;z-index:30}
 h1,h2,.section-title,.page-head .pixel-title{font-family:var(--font-display);letter-spacing:0}
 h1{text-shadow:none;letter-spacing:-.5px}
@@ -543,7 +543,7 @@ h2,.section-title{font-weight:700;letter-spacing:-.5px}
 .eyebrow,.section-chip,.hero-kicker{color:var(--green)}
 /* glass surfaces: translucent so the rain reads as depth behind them */
 .about-hero,.panel-dark,.alt-card,.evidence-slot,.empty-state,.honest-banner,.start-dialog,.composer,.project-workspace,.message.user .message-body{
-  background:linear-gradient(160deg,rgba(14,26,19,.86),rgba(8,14,11,.9))!important;border:1px solid var(--line)!important;
+  background:linear-gradient(160deg,rgba(14,26,19,.72),rgba(8,14,11,.8))!important;border:1px solid var(--line)!important;
   -webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2);box-shadow:0 24px 60px -30px rgba(0,0,0,.9),inset 0 1px 0 rgba(182,255,198,.05)}
 .alt-card:hover{border-color:var(--line-green)!important;box-shadow:0 14px 40px -24px rgba(0,0,0,.9)}
 .sidebar,.topbar,.chat-pane,.global-nav{background:rgba(1,6,2,.72)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
@@ -564,10 +564,89 @@ h2,.section-title{font-weight:700;letter-spacing:-.5px}
 .tag,.badge{font-family:var(--mono)}
 a{color:var(--green-hi)}
 
+/* ================= modern polish: one button system, a steady header, visual chat answers ================= */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+:root{--gnav-h:64px;--btn-h:42px;--btn-h-sm:34px;--radius-card:18px}
+/* header: fixed height, everything centered on one line */
+.global-nav{height:var(--gnav-h);display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--line)}
+.gnav-brand{display:inline-flex;align-items:center;gap:10px;height:40px;font:700 19px/1 var(--font-display);letter-spacing:-.4px}
+.gnav-brand .rvai-mark{width:32px;height:32px;filter:none}
+.gnav-word{display:inline!important}
+.global-nav nav{display:flex;align-items:center;height:100%}
+.global-nav nav ul{display:flex;align-items:center;gap:4px;margin:0;padding:0;list-style:none}
+.global-nav nav a{height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;line-height:1}
+.gnav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.gnav-try{height:var(--btn-h);display:inline-flex!important;align-items:center;justify-content:center;padding:0 22px;line-height:1}
+/* buttons: same heights, pill shape, centered content */
+.btn-primary,.btn-secondary,.btn-light{min-height:var(--btn-h);padding:0 20px;border-radius:999px;line-height:1.1;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-lg{min-height:48px;padding:0 26px;font-size:15px}
+.btn-secondary.small,.small-button{min-height:var(--btn-h-sm);padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;line-height:1.1;text-decoration:none}
+.filter-chip,.quick-replies button,.filter-select{min-height:var(--btn-h-sm);padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;line-height:1.1}
+.cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.new-chat{min-height:46px;border-radius:14px;align-items:center}
+.nav-item{min-height:40px;display:flex;align-items:center;gap:10px;border-radius:12px}
+.icon-button{width:36px;height:36px;display:inline-grid;place-items:center;border-radius:10px;padding:0}
+.send{width:38px!important;height:38px!important;display:grid!important;place-items:center;padding:0}
+.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.alt-card .btn-secondary,.alt-card .small-button{align-self:flex-start}
+.starter-grid button{border-radius:var(--radius-card);min-height:72px}
+/* Build with AI welcome: compact so the idea cards sit above the composer */
+.welcome{margin:28px auto 20px}
+.welcome-icon{width:64px;height:64px;margin:0 auto 14px}
+.welcome-icon .rvai-mark{width:52px;height:52px}
+.welcome h1{margin:10px 0 8px}
+@media (max-height:820px){.path-intro{display:none}.welcome{margin-top:16px}.welcome-icon{display:none}}
+.chat-scroll{padding-bottom:16px;scrollbar-width:thin;scrollbar-color:rgba(187,247,208,.18) transparent}
+.view-page,.workspace-content,.sidebar{scrollbar-width:thin;scrollbar-color:rgba(187,247,208,.18) transparent}
+.composer-wrap{padding-bottom:14px}.composer-note{margin-top:8px}
+/* visual chat answers */
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.pick-card{display:flex;flex-direction:column;gap:9px;padding:14px;border-radius:16px;background:rgba(14,26,19,.9);border:1px solid var(--line)}
+.pick-head{display:flex;align-items:center;gap:10px}
+.pick-avatar{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:10px;background:linear-gradient(140deg,#1a4d2e,#0d2a18);color:var(--mint);font:700 16px var(--font-display)}
+.pick-title{min-width:0;flex:1;display:flex;flex-direction:column}
+.pick-title b{font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-title small{font-size:11.5px;color:var(--ink-3)}
+.pick-pct{font:700 15px var(--font-display);color:var(--green)}
+.cov-bar{height:6px;border-radius:999px;background:rgba(187,247,208,.1);overflow:hidden}
+.cov-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--forest),var(--green))}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip-tag{font:500 11px/1 var(--mono);padding:5px 8px;border-radius:999px;background:rgba(74,222,128,.1);color:var(--mint);border:1px solid rgba(74,222,128,.18)}
+.chip-tag.warn{background:rgba(233,196,106,.1);color:#f1d68e;border-color:rgba(233,196,106,.25)}
+.pick-gaps{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12px;color:var(--ink-2)}
+.pick-gaps li{display:flex;align-items:center;gap:7px}
+.gap-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#f1d68e}.gap-dot.missing{background:#f08b80}.gap-dot.plugin{background:var(--green)}
+.pick-open{margin-top:auto;align-self:flex-start}
+.callout{margin-top:12px;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.6;border:1px solid var(--line)}
+.callout b{display:block;margin-bottom:6px;color:var(--ink)}
+.callout ul{margin:0;padding-left:18px}.callout small{color:var(--ink-3)}
+.callout p{margin:0 0 6px;color:var(--ink-2)}
+.callout.info{background:rgba(110,231,183,.07);color:var(--ink-2)}
+.callout.discount{background:rgba(74,222,128,.06)}
+.callout.plan{background:rgba(74,222,128,.09);border-color:var(--line-green)}
+.risk-list{margin-top:12px;display:grid;gap:6px}
+.risk-list>b{font-size:13px}
+.risk-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.5;color:var(--ink-2);background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.risk-item strong{color:var(--ink)}
+.risk-badge{flex-shrink:0;font:600 10.5px/1 var(--mono);padding:5px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px}
+.sev-high .risk-badge{background:rgba(240,139,128,.16);color:#f6a79e}
+.sev-medium .risk-badge{background:rgba(233,196,106,.14);color:#f1d68e}
+.sev-low .risk-badge{background:rgba(74,222,128,.12);color:var(--mint)}
+.agent-steps{margin-top:12px;font-size:12px;color:var(--ink-3)}
+.agent-steps summary{cursor:pointer;color:var(--ink-3)}
+.agent-steps ol{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.agent-steps li{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.agent-steps li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.agent-steps li.warn::before{background:#f1d68e}
+.agent-steps li small{color:var(--ink-3)}
+.rain-toggle{position:fixed;right:14px;bottom:12px;z-index:40;min-height:28px;padding:0 10px;border-radius:999px;font:500 11px/1 var(--mono);color:var(--ink-3);background:rgba(8,14,11,.8);border:1px solid var(--line)}
+.rain-toggle:hover{color:var(--ink)}
+html[data-route=innovate] .rain-toggle{display:none}
+@media (max-width:650px){.global-nav{gap:8px;padding:0 12px}.gnav-word{display:none!important}.gnav-try{padding:0 16px}.pick-grid{grid-template-columns:1fr}}
+
 /* ================= accessibility guardrails ================= */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  #matrix-rain{opacity:.35}
   .js-motion .reveal{opacity:1;transform:none}
   .js-motion .panel-dark.reveal{transform:none;clip-path:none}
   .hero-canvas{transform:none}
