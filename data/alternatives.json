@@ -1,0 +1,146 @@
+[
+  {
+    "id": "luanti",
+    "name": "Luanti",
+    "category": "voxel_game",
+    "official_url": "https://www.luanti.org/",
+    "source_repository": "https://github.com/luanti-org/luanti",
+    "license": "LGPL-2.1-or-later",
+    "license_source_url": "https://github.com/luanti-org/luanti/blob/master/LICENSE.txt",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "voxel_engine",
+      "modding",
+      "world_saving"
+    ],
+    "feature_evidence": {
+      "voxel_engine": "https://github.com/luanti-org/luanti/blob/master/README.md",
+      "modding": "https://github.com/luanti-org/luanti/blob/master/README.md",
+      "world_saving": "https://github.com/luanti-org/luanti/blob/master/README.md"
+    },
+    "platform_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://github.com/luanti-org/luanti/blob/master/README.md",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Engine, not a complete Minecraft substitute. A separately reviewed game/content package is required. Engine media has multiple licenses; game and mod licenses must be reviewed separately."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ]
+  },
+  {
+    "id": "freecad",
+    "name": "FreeCAD",
+    "category": "cad",
+    "official_url": "https://www.freecad.org/",
+    "source_repository": "https://github.com/FreeCAD/FreeCAD",
+    "license": "LGPL-2.1",
+    "license_source_url": "https://github.com/FreeCAD/FreeCAD/blob/main/LICENSE",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "parametric_modeling",
+      "2d_sketching",
+      "technical_drawings"
+    ],
+    "feature_evidence": {
+      "parametric_modeling": "https://github.com/FreeCAD/FreeCAD/blob/main/README.md",
+      "2d_sketching": "https://github.com/FreeCAD/FreeCAD/blob/main/README.md",
+      "technical_drawings": "https://github.com/FreeCAD/FreeCAD/blob/main/README.md"
+    },
+    "platform_source_url": "https://github.com/FreeCAD/FreeCAD/blob/main/README.md",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://github.com/FreeCAD/FreeCAD/blob/main/README.md",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Repository declares LGPL 2.1; bundled dependencies and extensions require separate review. Low-end hardware suitability is untested."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ]
+  },
+  {
+    "id": "shotcut",
+    "name": "Shotcut",
+    "category": "video_editor",
+    "official_url": "https://www.shotcut.org/",
+    "source_repository": "https://github.com/mltframework/shotcut",
+    "license": "GPL-3.0",
+    "license_source_url": "https://github.com/mltframework/shotcut/blob/master/COPYING",
+    "supported_platforms": [
+      "windows",
+      "macos",
+      "linux"
+    ],
+    "features": [
+      "timeline_editing",
+      "video_export",
+      "audio_mixing"
+    ],
+    "feature_evidence": {
+      "timeline_editing": "https://www.shotcut.org/features/",
+      "video_export": "https://www.shotcut.org/features/",
+      "audio_mixing": "https://www.shotcut.org/features/"
+    },
+    "platform_source_url": "https://github.com/mltframework/shotcut/blob/master/README.md",
+    "hardware_requirements": {
+      "minimum_ram_gb": null,
+      "dedicated_gpu_required": null,
+      "verification_status": "unknown"
+    },
+    "internet_requirements": {
+      "offline_use": null,
+      "verification_status": "unknown"
+    },
+    "pricing_type": "free_open_source",
+    "pricing_source_url": "https://github.com/mltframework/shotcut/blob/master/README.md",
+    "last_verified": "2026-10-25",
+    "verification_status": "source_reviewed_not_runtime_tested",
+    "license_review_status": "declared_license_only",
+    "notes": [
+      "Repository declares GPLv3. Bundled dependencies/codecs require separate review. Low-end performance depends on footage and workflow."
+    ],
+    "unknowns": [
+      "hardware_fit",
+      "offline_use",
+      "dependency_and_asset_license_audit",
+      "runtime_behavior"
+    ]
+  }
+]
