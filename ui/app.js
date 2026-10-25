@@ -3,6 +3,8 @@
 // endpoint gets the 0.2-draft PROPOSED envelope (docs/conversational-product-contract.md).
 import { createWebsiteTemplate } from './website-template.js';
 import { isRecommendEndpoint, recommendQuery, recommendError, fromRecommend } from './rvai-adapter.js';
+import { rebuildIntent, targetFrom } from './rebuild-core.js';
+import { mountRebuild } from './rebuild-flow.js';
 const $ = id => document.getElementById(id);
 const DATA_BASE = '../data/';
 const CONTRACT = '0.2-draft';
@@ -35,7 +37,7 @@ let state = fresh();
 function fresh() {
   return { conversation_id: newId(), messages: [], step: 'target', revising: false, target: '', category: null, purpose: '', featuresText: '',
     featureIds: [], proposedIds: [], customFeatures: [], constraints: null, route: null, baseId: null, discovery: null, agentBrief: null, agentPlan: null,
-    artifact: null, artifactError: null,
+    artifact: null, artifactError: null, lastTarget: '',
     provenance: { brief: 'scripted_demo', discovery: 'scripted_demo', plan: 'scripted_demo' } };
 }
 
@@ -114,11 +116,29 @@ async function send(raw, { retry = false } = {}) {
   if (busy || !dataLoaded || !text) return;
   if (!retry) { addMessage('user', text); $('message-input').value = ''; }
   setQuick([]);
+  const intent = CRACK_RE.test(text) ? null : rebuildIntent(text);
+  if (intent) return startRebuild(intent.target || contextTarget());
   if (liveMode()) return sendLive(text);
   if (dataError) return bot(`The catalog could not be loaded (${dataError}), so the scripted demo cannot search. Serve the repository root over HTTP and reload the page.`, { error: true, tag: 'Catalog error', log: false });
   if (CRACK_RE.test(text)) return bot('I can’t help crack software, bypass licensing or activation, or find pirated copies. I can help you find a free or open alternative, extend an open project, or plan an original tool that does what you need. What do you want to be able to do?',
     { tag: 'RevAI · scripted demo · declined' });
   interview(text);
+}
+
+// ---------- rebuild hand-off: "make my own version" runs the Rebuild flow right in the chat ----------
+/** The product the conversation is about: the last recommendation's target, else the latest "like X" the person wrote. */
+function contextTarget() {
+  if (state.lastTarget) return state.lastTarget;
+  for (const m of [...state.messages].reverse()) if (m.role === 'user') { const t = targetFrom(m.content); if (t) return t; }
+  return '';
+}
+function startRebuild(target) {
+  const holder = el('div', { class: 'rebuild-inline' });
+  bot(target
+    ? `Let’s build your own version of ${target}. Agents are researching it now. Then pick the features and mods you want, the AI model and your system, and you’ll get one file to download.`
+    : 'Let’s build your own version. Type the app or website it should be like, and agents will research it. Then pick features and mods, the AI model and your system, and you’ll get one file to download.',
+  { tag: 'RVAI · Rebuild an app', extras: [holder] });
+  mountRebuild(holder, { app: target, onFile: f => { state.messages.push({ role: 'assistant', content: `Built ${f.displayTitle} as ${f.filename}.` }); } });
 }
 
 // ---------- live adapter (proposed 0.2-draft envelope; not an implemented backend contract) ----------
@@ -132,6 +152,8 @@ async function sendLive(text) {
   try {
     const url = endpoint();
     const data = isRecommendEndpoint(url) ? fromRecommend(await callAgent(url, { query: recommendQuery(state.messages) })) : await callAgent(url, request());
+    const found = /^Alternatives to (.+)$/.exec(data?.discovery?.title || '')?.[1];
+    if (found) state.lastTarget = found;
     agentStatus = 'ok';
     applyAgent(data);
   } catch (e) {
@@ -193,7 +215,8 @@ function visualReply(v, steps) {
     v.risks.map(t => el('div', { class: `risk-item sev-${t.severity}` }, el('span', { class: 'risk-badge', text: RISK_LABEL[t.severity] || t.severity }), el('span', {}, el('strong', { text: t.subject }), ` ${t.advice}`)))));
   if (v.plan) parts.push(el('div', { class: 'callout plan' }, el('b', { text: 'Nothing free covers enough, so here’s a plan for your own tool' }), el('p', { text: v.plan.reason }),
     el('div', { class: 'message-actions' },
-      el('button', { type: 'button', class: 'small-button primary', text: 'Download plan (.md)', onclick: () => download('rvai-plan.md', v.plan.markdown, 'text/markdown') }),
+      el('button', { type: 'button', class: 'small-button primary', text: 'Build it for me', onclick: () => startRebuild(contextTarget()) }),
+      el('button', { type: 'button', class: 'small-button', text: 'Download plan (.md)', onclick: () => download('rvai-plan.md', v.plan.markdown, 'text/markdown') }),
       el('button', { type: 'button', class: 'small-button', text: 'Open the Plan tab', onclick: () => openWorkspace('plan') }))));
   if (steps) parts.push(el('details', { class: 'agent-steps' }, el('summary', { text: `How RVAI got this · ${steps.length} steps` }),
     el('ol', {}, steps.map(s => el('li', { class: /fallback|failed|blocked/.test(s.status || '') ? 'warn' : '' }, el('span', { text: s.label }), s.status ? el('small', { text: s.status }) : null)))));

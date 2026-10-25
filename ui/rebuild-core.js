@@ -59,3 +59,29 @@ export function buildBody(profile, state) {
 export function downloadSpec(file) {
   return { name: file.filename, type: `${file.mime};charset=utf-8`, text: file.content };
 }
+
+// ---------- chat hand-off ----------
+const PRONOUN = /^(it|this|that|them|those|these|one|the same|something|anything|me|my)$/i;
+const BUILD_INTENT = [
+  /\bcreate something new\b/i,
+  /\bbuild it for me\b/i,
+  /\b(re-?build|reverse[- ]engineer)\b/i,
+  /\b(my own|a new|an original)\s+(version|app|application|game|tool|program|website|site|clone|copy)\b/i,
+  /\b(create|make|build|code|develop|write)\b.{0,40}\b(similar to|like|version of|copy of|clone of|based on|inspired by)\b/i,
+  /\b(create|make|build|code|develop|write)\b.{0,30}\b(new|own)\b.{0,20}\b(app|application|game|tool|program|website|site|version)\b/i,
+];
+
+/** Pulls the product name out of "like X", "similar to X", "version of X"; null for "it"/"that". */
+export function targetFrom(text) {
+  const m = String(text).match(/\b(?:similar to|alternative to|version of|copy of|clone of|based on|inspired by|reverse[- ]engineer|rebuild|like)\s+(?:the\s+)?([A-Za-z0-9][\w.+'&-]*(?:\s+[A-Z0-9][\w.+'&-]*){0,3})/);
+  if (!m) return null;
+  const name = m[1].replace(/[.!?,]+$/, '').trim();
+  return name && !PRONOUN.test(name) && !/^(in|a|an|to|for|with)$/i.test(name) ? name : null;
+}
+
+/** Does this message ask RVAI to make the app (not just find one)? Returns {target} (target may be null) or null. */
+export function rebuildIntent(text) {
+  const t = String(text);
+  if (!BUILD_INTENT.some(re => re.test(t))) return null;
+  return { target: targetFrom(t) };
+}
