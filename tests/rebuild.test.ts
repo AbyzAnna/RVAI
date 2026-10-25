@@ -282,6 +282,15 @@ describe("rebuild plan, watchdog, repair and basic mode", () => {
 });
 
 describe("rebuild helpers", () => {
+  it("catches script errors a plain compile misses: browser names and duplicates across script tags", () => {
+    const page = (...scripts: string[]) => `<!DOCTYPE html><html><head></head><body>${scripts.map((c) => `<script>${c}</script>`).join("")}</body></html>`;
+    expect(scriptErrors(page("let top = 0; let left = 1;"))[0]).toMatch(/Identifier 'top' has already been declared: "top" is the browser's own name/);
+    expect(scriptErrors(page("const location = 'home';"))[0]).toMatch(/location/);
+    expect(scriptErrors(page("let score = 0;", "let score = 1;"))[0]).toMatch(/Identifier 'score' has already been declared/);
+    expect(scriptErrors(page("let self = 1; var name = 'x'; window.alert; document.body;", "const other = top;"))).toEqual([]);
+    expect(scriptErrors(page("while (true) {}"))).toEqual([]);
+  });
+
   it("extracts the document from a chatty reply and flags broken files", () => {
     expect(extractFile("Sure!\n" + APP + "\nThanks", "html")).toBe(APP + "\n");
     expect(checkFile("<!DOCTYPE html><html><body>cut off", "html")).toContain("is cut off before </html>");

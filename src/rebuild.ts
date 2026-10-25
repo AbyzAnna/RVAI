@@ -1,4 +1,4 @@
-import { Script } from "node:vm";
+import { createContext, Script } from "node:vm";
 import { z } from "zod";
 import { scanForInjection } from "./agents/index.js";
 import { type UrlCheck } from "./discover.js";
@@ -383,15 +383,29 @@ export function extractFile(reply: string, format: Format): string {
   return text.trim() + "\n";
 }
 
-/** Compiles every inline classic script without running it, and returns the syntax errors. */
+/** Window properties a page can't redeclare: `let top` or `const location` stops the whole script in a browser. */
+const RESERVED_GLOBALS = ["window", "document", "location", "top"];
+
+/**
+ * Compiles every inline classic script and sets up its top-level names the way a browser does, without running
+ * any of its code, and returns the errors. This catches syntax errors, a name declared twice (also across
+ * separate <script> tags, which share one global scope) and names that clash with the browser's own, such as `top`.
+ */
 export function scriptErrors(html: string): string[] {
   const errors: string[] = [];
+  const page = createContext({});
+  new Script(`for (const k of ${JSON.stringify(RESERVED_GLOBALS)}) Object.defineProperty(globalThis, k, { get() { return globalThis; }, configurable: false });`).runInContext(page);
   for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (/\bsrc\s*=/i.test(m[1]) || /type\s*=\s*["']?(module|application\/json|text\/template)/i.test(m[1])) continue;
     try {
-      new Script(m[2]);
+      // The browser declares a script's top-level names before running its first line, so `throw` stops it right after.
+      new Script(`throw RVAI_NOT_RUN;\n${m[2]}`).runInContext(page);
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+      // Errors from inside the context come from its own realm, so read the message instead of using instanceof.
+      const message = String((err as { message?: unknown })?.message ?? err);
+      if (/RVAI_NOT_RUN is not defined/.test(message)) continue;
+      const reserved = RESERVED_GLOBALS.find((g) => message.includes(`'${g}'`));
+      errors.push(reserved ? `${message}: "${reserved}" is the browser's own name, rename that variable` : message);
     }
   }
   return errors;
@@ -457,7 +471,7 @@ function builderPrompt(req: BuildRequest, appName: string): { system: string; us
 - Save the person's data in localStorage (wrap every access in try/catch) and add export/import of that data as a JSON file.
 - Work fully offline. If a feature normally needs a server (accounts, sync, sharing), make a local version and say so in the UI.
 - Keyboard shortcuts use ${mod}. Responsive down to phone width, accessible labels and focus styles, light and dark themes, and a polished look of your own: consistent spacing, hover states, subtle transitions.
-- Robust code: declare each name only once, check DOM lookups, and wrap start-up in try/catch that shows a friendly message on the page instead of a blank screen.
+- Robust code: declare each name only once, never name your own variables window, document, location or top, check DOM lookups, and wrap start-up in try/catch that shows a friendly message on the page instead of a blank screen.
 - Start your reply with <!DOCTYPE html> and end it with </html>. Output the file only.`
       : `Write ONE complete Python 3.10+ file that runs with "python3 file.py" on ${os}${req.system.arch !== "unknown" ? ` (${req.system.arch})` : ""}.
 - Standard library only: tkinter/ttk for the window. No pip packages.
@@ -642,7 +656,7 @@ ${wishes(req)}${req.notes || req.answers.length ? "Follow their wishes, especial
           const left = deadline - Date.now();
           if (left < 45_000) throw new Error("out of time for another try");
           // On the retry, tell the model what was wrong with its first file so it can avoid it.
-          const ask = lastProblem ? `${user}\n\nYour previous attempt was rejected because it ${lastProblem}. Write the whole file again and check every variable name is declared only once.` : user;
+          const ask = lastProblem ? `${user}\n\nYour previous attempt was rejected because it ${lastProblem}. Write the whole file again. Check every variable name is declared only once, and never name your own variables window, document, location or top.` : user;
           const file = extractFile(await completeText(system, ask, { ...llm(p!, model, opts, 32000), timeoutMs: Math.min(BUILD_TIMEOUT_MS, left - 5_000) }), format);
           const problems = checkFile(file, format);
           if (problems.length) {
