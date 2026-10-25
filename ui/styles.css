@@ -529,8 +529,8 @@ input:focus,textarea:focus,select:focus{outline:0;border-color:var(--green);box-
 html{background:var(--black)}
 body{background:radial-gradient(900px 520px at 80% -10%,rgba(74,222,128,.06),transparent 60%),var(--black)}
 /* the rain is a quiet texture, not a light show: dim on pages, barely there behind the chat */
-#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.45;filter:saturate(.7)}
-html[data-route=innovate] #matrix-rain{opacity:.16}
+#matrix-rain{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.62;filter:saturate(.8)}
+html[data-route=innovate] #matrix-rain{opacity:.2}
 body>*:not(#matrix-rain):not(.sprite):not(.rain-toggle){position:relative;z-index:1}
 .global-nav{position:relative;z-index:30}
 h1,h2,.section-title,.page-head .pixel-title{font-family:var(--font-display);letter-spacing:0}
@@ -543,7 +543,7 @@ h2,.section-title{font-weight:700;letter-spacing:-.5px}
 .eyebrow,.section-chip,.hero-kicker{color:var(--green)}
 /* glass surfaces: translucent so the rain reads as depth behind them */
 .about-hero,.panel-dark,.alt-card,.evidence-slot,.empty-state,.honest-banner,.start-dialog,.composer,.project-workspace,.message.user .message-body{
-  background:linear-gradient(160deg,rgba(14,26,19,.86),rgba(8,14,11,.9))!important;border:1px solid var(--line)!important;
+  background:linear-gradient(160deg,rgba(14,26,19,.72),rgba(8,14,11,.8))!important;border:1px solid var(--line)!important;
   -webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2);box-shadow:0 24px 60px -30px rgba(0,0,0,.9),inset 0 1px 0 rgba(182,255,198,.05)}
 .alt-card:hover{border-color:var(--line-green)!important;box-shadow:0 14px 40px -24px rgba(0,0,0,.9)}
 .sidebar,.topbar,.chat-pane,.global-nav{background:rgba(1,6,2,.72)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
