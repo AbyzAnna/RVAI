@@ -51,7 +51,7 @@ test('global nav: three plain links in order with exact labels, Home current by 
 test('icon + logo contract: local SVG sprite, distinct nav icons hidden from AT, accessible logo with text fallback', () => {
   const nav = html.match(/<nav aria-label="Main sections">[\s\S]*?<\/nav>/)[0];
   const icons = [...nav.matchAll(/<svg class="ico" aria-hidden="true"[^>]*><use href="#(i-[\w-]+)"\/><\/svg>/g)].map(m => m[1]);
-  assert.deepEqual(icons, ['i-about', 'i-alternatives', 'i-innovate'], 'one distinct icon per nav item');
+  assert.deepEqual(icons, ['i-about', 'i-alternatives', 'i-innovate', 'i-cube'], 'one distinct icon per nav item');
   for (const id of [...new Set(html.match(/<use href="#([\w-]+)"/g).map(u => u.slice('<use href="#'.length, -1)))]) {
     assert.ok(new RegExp(`<symbol id="${id}"`).test(html), `#${id} is defined locally as a <symbol>`);
   }
