@@ -31,7 +31,7 @@ request ─▶ guard input ─▶ analyze goal ─▶ (discover) ─▶ compare 
 - **Guardrails** (`src/guardrails.ts`) refuse cracking, piracy, license bypass, decompiling or reverse engineering, asset ripping and cheats, and audit every link in the output.
 - **Live discovery** (`src/discover.ts`) looks up alternatives for requests outside the catalog and checks every link before showing it.
 - **Seed catalog** (`data/catalog.json`) holds 15 paid products and their free alternatives, each with an SPDX license and official link.
-- **Web page** (`web/index.html`, served by `src/server.ts`) and **CLI** (`src/cli.ts`) both run the same pipeline.
+- **Web app** (`ui/`, served by `src/server.ts` at `/ui/`) and **CLI** (`src/cli.ts`) both run the same pipeline. A plain fallback page lives at `/simple`.
 
 ## Usage
 
@@ -39,7 +39,7 @@ Needs Node 20 or newer.
 
 ```bash
 npm install
-npm run web                       # open http://localhost:3000 and try it in the browser
+npm run web                       # open http://localhost:3000 (the RVAI web app, wired to the backend)
 npm run demo                      # offline demo, no API key needed
 npx tsx src/cli.ts --offline "a cozy game like Minecraft for an old laptop"
 npx tsx src/cli.ts --json --trace "free Office for my Mac"
@@ -101,3 +101,68 @@ The catalog is validated on load, so a typo in a feature id fails fast. After ch
 Read [DISCLAIMER.md](DISCLAIMER.md) and [PLAN_AND_LEGAL.md](PLAN_AND_LEGAL.md) for the clean-room approach and how RVAI respects licenses and trademarks. Product names are trademarks of their owners and are used only to say what an alternative replaces.
 
 RVAI is released under the [MIT License](LICENSE).
+
+## RVAI web interface (`ui/`)
+
+The goal is to make technology accessible to everyone without simply copying or cracking paid software.
+
+### Mission
+
+RevAI helps someone get the tool they need in three steps, in order:
+
+1. **Find existing alternatives**: free, open, or legitimately accessible projects that already do the job.
+2. **Extend a suitable project**: when something close exists, adapt or build on it instead of starting over.
+3. **Create an original prototype**: when nothing fits, sketch a new one (websites included).
+
+### Team responsibilities
+
+- **Claude**: implements the UI.
+- **Codex**: orchestrates, reviews, and tests.
+- **Anna**: owns the backend and AI generation.
+
+### Initial catalog foundation
+
+See [catalog setup and scope](docs/catalog-foundation.md) and [backend handoff](docs/integration.md). This is role 1 groundwork; the backend and interface remain in development.
+
+### Interface preview
+
+Serve the repository root and open the UI:
+
+```sh
+python3 -m http.server 4173 --bind 127.0.0.1
+```
+
+Then visit http://127.0.0.1:4173/ui/ .
+
+#### Connect Anna's backend (live mode)
+
+One command serves the UI and the backend on the same origin:
+
+```sh
+npm install && npm run web            # http://127.0.0.1:3000/ui/ (keyword analyzer without an API key; Claude with one in .env)
+```
+
+When the page is served this way it finds `GET /api/health` and switches **Use connected agent** on by itself (untick it in **Connection settings** to go back to the scripted demo; the choice is remembered). The Python dev proxy still works if you prefer to serve the UI separately:
+
+```sh
+python3 scripts/dev_server.py         # UI on http://127.0.0.1:4173/ui/, /api/* -> :3000 (--api to change)
+```
+
+With the proxy, open **Connection settings** in Innovate, keep the endpoint `/api/recommend` and tick **Use connected agent**. `ui/rvai-adapter.js` maps her `{result, trace}` into the chat, the Alternatives cards (gaps and workarounds), the Plan tab (when she returns a `buildPlan`) and a refusal with legal options. Her trace is shown as reported, and nothing is invented locally. The fixtures in `docs/examples/recommend.*.json` are real responses from her server. If the backend is down, the chat shows a 502 with Retry and no scripted fallback. No frontend installation or API key required. See [UI connection contract](docs/ui-api-contract.md), [role 1 requirements](docs/role-1-requirements.md), and [today’s workflow](docs/today-workflow.md).
+
+What the preview is and is not:
+
+- The chat conversation is a **scripted local demo, not AI**: goal → purpose → features → device limits → catalog alternatives (evidence, unknowns, exclusions) → Find/Extend (pick a base project) or Create → plan with acceptance check. Guided revisions recompute everything.
+- For the website Create route, after reviewing the plan you can press **Create demo website template** to get a sandboxed preview and an HTML download. It is a deterministic local template, **not AI generation**.
+- CAD/game/other Create routes are **proposals only** until Anna's agent is connected.
+- **Live mode with Anna's `/api/recommend` was checked in Chrome on 2026-10-25** against `npm run web` in offline mode (keyword analyzer, no API key): a recommendation with a build plan, a refusal, and backend-down. Claude-backed analysis and live discovery were not exercised. Any other endpoint URL still receives the *proposed* `0.2-draft` envelope ([contract](docs/conversational-product-contract.md)). See the [UI build report](docs/claude-ui-build-report.md).
+
+### Checks
+
+CI (`.github/workflows/catalog-checks.yml`) runs with no dependency installs:
+
+- Python catalog/metadata tests: `python -m unittest discover -s tests -v`
+- JSON validation of `data/*.json`
+- Syntax check of every `ui/*.js` file as an ES module
+- UI Node tests: `node --test ui/*.test.mjs` (website template, shell, backend adapter)
+- Dev proxy test: `tests/test_dev_server.py` (part of the unittest run)
