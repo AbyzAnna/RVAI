@@ -7,8 +7,8 @@ export const SUPPORT_CREDIT: Record<Support, number> = { full: 1, plugin: 0.75, 
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
-// A browser app works anywhere a desktop browser does.
-const BROWSER_PLATFORMS: Platform[] = ["web", "windows", "mac", "linux"];
+// A browser app works anywhere a browser does, phones and tablets included.
+const BROWSER_PLATFORMS: Platform[] = ["web", "windows", "mac", "linux", "android", "ios"];
 
 function runsOn(alt: Alternative, wanted: Platform[]): boolean {
   if (wanted.length === 0) return true;

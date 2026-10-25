@@ -72,6 +72,9 @@ const HARMLESS_PHRASES = [
   /\bpirate[- ](ship|boat|game|adventure|theme|themed|story|crew|map|party|costume|hat|captain|treasure|island|flag|radio)s?\b/gi,
   /\bcrack(s|ed|ing)? (the |a |this )?(code|puzzle|case|cipher|riddle|joke|egg|safe|nut)s?\b/gi,
   /\bcracked (screen|phone|glass|egg|tile|wall)s?\b/gi,
+  // Hardware or bodies cracking, not software: "my old laptop is about to crack", "crack my knuckles".
+  /\b(about|going|starting|ready) to crack\b/gi,
+  /\bcrack(s|ed|ing)? (my |your |his |her |their |the )?(knuckles|neck|back|joints?|screen|case|hinge|window|up|open|a smile|a joke|jokes)\b/gi,
   /\btorrent (client|app|program|software|downloader|manager)s?\b/gi,
 ];
 

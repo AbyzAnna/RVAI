@@ -15,6 +15,8 @@ const goal = {
   skillLevel: "beginner",
   vibe: ["Simple"],
   openSourceOnly: false,
+  clarifyingQuestion: null,
+  answerOptions: [],
 };
 
 const reply = (body: unknown, status = 200) =>
@@ -33,7 +35,8 @@ describe("OpenRouter analyzer", () => {
     expect(url).toBe(OPENROUTER_URL);
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer test-key");
     const body = JSON.parse(init.body as string);
-    expect(body.model).toBe("anthropic/claude-opus-5.5");
+    expect(body.model).toBe("anthropic/claude-sonnet-5.5");
+    expect(body.models).toEqual(["anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "anthropic/claude-haiku-5.5"]);
     expect(body.response_format.json_schema.strict).toBe(true);
     expect(body.response_format.json_schema.schema.additionalProperties).toBe(false);
     expect(body.messages[0].content).toContain("Never help decompile");
