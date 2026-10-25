@@ -25,7 +25,7 @@ request ─▶ guard input ─▶ analyze goal ─▶ compare features ─▶ re
 ```
 
 - **Orchestrator** (`src/orchestrator.ts`) runs the steps in order, validates each step's output with zod, retries, falls back, and keeps a trace.
-- **Goal analyzer** (`src/analyzer/`) uses Claude structured output to turn free text into a goal profile. Without an API key, in `--offline` mode, or if Claude fails, a keyword analyzer takes over.
+- **Goal analyzer** (`src/analyzer/`) uses Claude structured output, through the Anthropic API or OpenRouter, to turn free text into a goal profile. Without an API key, in `--offline` mode, or if Claude fails, a keyword analyzer takes over.
 - **Feature comparison** (`src/compare.ts`) scores each alternative: must-haves 55%, nice-to-haves 20%, vibe 10%, platform 10%, learning curve against skill level 5%. Coverage is weighted by each feature's weight (1 to 3); full support counts 1, a plug-in 0.75, partial 0.5. Same input, same ranking.
 - **Recommendations** (`src/recommend.ts`) return the top 3 picks with gaps and workarounds, official discounts for the original, and a plan for an original tool when the best pick covers under 70% of the must-haves.
 - **Guardrails** (`src/guardrails.ts`) refuse cracking, piracy, license bypass, decompiling or reverse engineering, asset ripping and cheats, and audit every link in the output.
@@ -43,7 +43,16 @@ npx tsx src/cli.ts --json --trace "free Office for my Mac"
 npx tsx src/cli.ts --offline --catalog=examples/catalog.example.json "a free Figma"
 ```
 
-To let Claude analyze requests, set `ANTHROPIC_API_KEY`. The default model is `claude-opus-5-5`; change it with `--model`. If a Claude call fails or is declined, RVAI retries once and then uses the keyword analyzer, and the trace says so.
+To let Claude analyze requests, give RVAI a key in the environment or in a `.env` file in the folder you run it from (`.env` is gitignored, so keys never get committed):
+
+```bash
+# Anthropic API directly (model claude-opus-5-5)
+ANTHROPIC_API_KEY=...
+# or Claude through OpenRouter (model anthropic/claude-opus-5.5)
+OPENROUTER_API_KEY=...
+```
+
+If both are set, RVAI uses the Anthropic API. Change the model with `--model`. If a call fails or is declined, RVAI retries once and then uses the keyword analyzer, and the trace (`--trace`) says which provider answered or why it fell back.
 
 Build and run the compiled CLI:
 

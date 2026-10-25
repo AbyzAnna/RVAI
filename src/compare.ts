@@ -76,10 +76,11 @@ export function compareAlternatives(profile: GoalProfile, product: Product | und
   const candidates = product.alternatives
     .filter((alt) => !profile.openSourceOnly || alt.openSource)
     .map((alt) => scoreAlternative(profile, alt, product))
+    // Something that doesn't run on your machine never outranks something that does.
     .sort(
       (a, b) =>
-        b.score - a.score ||
         Number(b.platformMatch) - Number(a.platformMatch) ||
+        b.score - a.score ||
         Number(b.openSource) - Number(a.openSource) ||
         a.name.localeCompare(b.name),
     );

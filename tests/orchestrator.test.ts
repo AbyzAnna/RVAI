@@ -30,7 +30,7 @@ describe("orchestrator", () => {
 
   it("falls back to keywords when there is no API key", async () => {
     const { trace } = await run("something like Blender", { env: {} });
-    expect(trace[1].detail).toContain("no Anthropic API key");
+    expect(trace[1].detail).toContain("no Anthropic or OpenRouter API key");
   });
 
   it("uses Claude when a client is available", async () => {
@@ -43,7 +43,7 @@ describe("orchestrator", () => {
   it("retries Claude once, then falls back to keywords", async () => {
     const retried = fakeClient([new Error("overloaded"), { stop_reason: "end_turn", parsed_output: goodProfile }]);
     const first = await run("blocks with friends", { client: retried });
-    expect(first.trace[1]).toMatchObject({ status: "ok", detail: "succeeded on retry 1" });
+    expect(first.trace[1]).toMatchObject({ status: "ok", detail: "anthropic, succeeded on retry 1" });
 
     const broken = fakeClient([new Error("overloaded"), { stop_reason: "refusal", parsed_output: null }]);
     const second = await run("something like Minecraft", { client: broken });

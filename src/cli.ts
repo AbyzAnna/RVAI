@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { formatResult, formatTrace } from "./format.js";
+import { existsSync } from "node:fs";
 import { loadCatalog } from "./catalog.js";
 import { run, StepError } from "./orchestrator.js";
 
@@ -25,14 +26,19 @@ Options:
   --demo      Run a set of example requests
   --json      Print the structured result as JSON
   --trace     Show each pipeline step and whether it fell back
-  --model ID  Claude model for the goal analyzer (default: claude-opus-5-5)
+  --model ID  Model for the goal analyzer (default: claude-opus-5-5, or
+              anthropic/claude-opus-5.5 through OpenRouter)
   --catalog=FILE
               Use another catalog JSON file (or set RVAI_CATALOG); see catalog.schema.json
   -h, --help  Show this help
 
-Set ANTHROPIC_API_KEY to use Claude for goal analysis; without it RVAI falls back to keywords.`;
+Set ANTHROPIC_API_KEY, or OPENROUTER_API_KEY to reach Claude through OpenRouter, in the
+environment or a .env file. Without either, RVAI falls back to keywords.`;
 
 async function main(argv: string[]): Promise<number> {
+  // Keys can live in a local, gitignored .env file.
+  if (existsSync(".env")) process.loadEnvFile(".env");
+
   const flags = new Set<string>();
   const words: string[] = [];
   let model: string | undefined;

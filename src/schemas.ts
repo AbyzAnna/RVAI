@@ -79,7 +79,7 @@ export const GoalProfile = z.object({
   skillLevel: SkillLevel,
   vibe: z.array(z.string()),
   openSourceOnly: z.boolean(),
-  source: z.enum(["claude", "keyword"]),
+  source: z.enum(["claude", "openrouter", "keyword"]),
 });
 export type GoalProfile = z.infer<typeof GoalProfile>;
 

@@ -1,5 +1,13 @@
 import type { ZodType } from "zod";
-import { analyzeWithClaude, analyzeWithKeywords, detectProduct, hasApiCredentials, type MessagesClient } from "./analyzer/index.js";
+import {
+  analyzeWithClaude,
+  analyzeWithKeywords,
+  analyzeWithOpenRouter,
+  detectProduct,
+  hasApiCredentials,
+  hasOpenRouterKey,
+  type MessagesClient,
+} from "./analyzer/index.js";
 import { findProduct, loadCatalog } from "./catalog.js";
 import { compareAlternatives } from "./compare.js";
 import { auditOutput, checkRequest, isSafeUrl, REFUSAL_PREFIX } from "./guardrails.js";
@@ -24,7 +32,10 @@ export interface TraceEntry {
 export interface RunOptions {
   /** Skip Claude entirely and use the keyword analyzer. */
   offline?: boolean;
+  /** Anthropic client to use; when set, the Anthropic API is used directly. */
   client?: MessagesClient;
+  /** fetch to use for OpenRouter calls (tests pass a fake). */
+  fetch?: typeof fetch;
   model?: string;
   catalog?: Catalog;
   env?: NodeJS.ProcessEnv;
@@ -49,6 +60,8 @@ interface Step<T> {
   name: string;
   schema: ZodType<T>;
   primary: () => T | Promise<T>;
+  /** Shown in the trace when the primary succeeds, e.g. which provider answered. */
+  label?: string;
   /** How many extra tries the primary gets before falling back. */
   retries?: number;
   fallback?: { run: () => T | Promise<T>; label: string };
@@ -67,7 +80,8 @@ async function runStep<T>(step: Step<T>, trace: TraceEntry[]): Promise<T> {
     for (let attempt = 0; attempt <= (step.retries ?? 0); attempt++) {
       try {
         const value = step.schema.parse(await step.primary());
-        trace.push({ step: step.name, status: "ok", ms: Date.now() - started, ...(attempt ? { detail: `succeeded on retry ${attempt}` } : {}) });
+        const detail = [step.label, attempt ? `succeeded on retry ${attempt}` : undefined].filter(Boolean).join(", ");
+        trace.push({ step: step.name, status: "ok", ms: Date.now() - started, ...(detail ? { detail } : {}) });
         return value;
       } catch (err) {
         errors.push(message(err));
@@ -134,15 +148,26 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
   }
   trace.push({ step: "guard-input", status: "ok", ms: 0 });
 
-  const useClaude = !opts.offline && (opts.client !== undefined || hasApiCredentials(env));
+  // Anthropic API first (explicit client or key), then OpenRouter, then keywords.
+  const provider = opts.offline
+    ? null
+    : opts.client !== undefined || hasApiCredentials(env)
+      ? "anthropic"
+      : hasOpenRouterKey(env)
+        ? "openrouter"
+        : null;
   const profile = await runStep(
     {
       name: "analyze",
       schema: GoalProfile,
-      primary: () => analyzeWithClaude(query, catalog, { client: opts.client, model: opts.model }),
+      label: provider ?? undefined,
+      primary: () =>
+        provider === "openrouter"
+          ? analyzeWithOpenRouter(query, catalog, { env, model: opts.model, fetch: opts.fetch })
+          : analyzeWithClaude(query, catalog, { client: opts.client, model: opts.model }),
       retries: 1,
       fallback: { run: () => analyzeWithKeywords(query, catalog), label: "keyword analyzer" },
-      ...(useClaude ? {} : { skipPrimary: opts.offline ? "offline mode" : "no Anthropic API key" }),
+      ...(provider ? {} : { skipPrimary: opts.offline ? "offline mode" : "no Anthropic or OpenRouter API key" }),
     },
     trace,
   );

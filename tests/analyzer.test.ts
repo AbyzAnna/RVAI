@@ -18,6 +18,10 @@ describe("keyword analyzer", () => {
     expect(p.source).toBe("keyword");
   });
 
+  it("treats a Chromebook as web plus Linux", () => {
+    expect(analyzeWithKeywords("video editor for my Chromebook", catalog).platforms).toEqual(["web", "linux"]);
+  });
+
   it("uses the product's core features when none are named", () => {
     const p = analyzeWithKeywords("something like AutoCAD", catalog);
     expect(p.mustHaves).toEqual(catalog.products.find((x) => x.id === "autocad")!.features.slice(0, 4).map((f) => f.id));

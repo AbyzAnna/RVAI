@@ -64,7 +64,9 @@ function buildPlan(profile: GoalProfile, product: Product | undefined, top: Cand
     ? "This request is not in RVAI's catalog yet, so there is no vetted free alternative to rank."
     : !top
       ? "No free alternative in the catalog fits your filters."
-      : `The best free pick, ${top.name}, covers only ${pct(top.mustHaveCoverage)} of your must-haves (the bar is ${pct(BUILD_THRESHOLD)}).`;
+      : !top.platformMatch
+        ? `None of the free alternatives in the catalog run on ${profile.platforms.join(" or ")}.`
+        : `The best free pick, ${top.name}, covers only ${pct(top.mustHaveCoverage)} of your must-haves (the bar is ${pct(BUILD_THRESHOLD)}).`;
 
   const foundation = top
     ? [`Extend ${top.name} (${top.license}) through its plug-in or scripting system if it has one, so you only build the missing parts.`]
@@ -99,7 +101,7 @@ export function buildRecommendation(
   const ranked = matrix.candidates.slice(0, MAX_PICKS);
   const picks = product ? ranked.map((c, i) => toPick(c, i + 1, product, profile)) : [];
   const top = matrix.candidates[0];
-  const needsBuild = !product || !top || top.mustHaveCoverage < BUILD_THRESHOLD;
+  const needsBuild = !product || !top || top.mustHaveCoverage < BUILD_THRESHOLD || !top.platformMatch;
 
   return {
     status: "ok",

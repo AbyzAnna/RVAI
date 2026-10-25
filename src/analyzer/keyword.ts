@@ -4,7 +4,9 @@ const PLATFORM_WORDS: Array<[RegExp, Platform[]]> = [
   [/\b(windows|win ?1[01]|pc)\b/i, ["windows"]],
   [/\b(mac|macbook|macos|imac|os x)\b/i, ["mac"]],
   [/\b(linux|ubuntu|fedora|debian|mint|arch)\b/i, ["linux"]],
-  [/\b(chromebook|chromeos|chrome os|browser|web)\b/i, ["web"]],
+  // Chromebooks run web apps and, through their Linux container, Linux apps.
+  [/\b(chromebook|chromeos|chrome os)\b/i, ["web", "linux"]],
+  [/\b(browser|web)\b/i, ["web"]],
   [/\bandroid\b/i, ["android"]],
   [/\b(ipad|iphone|ios)\b/i, ["ios"]],
 ];

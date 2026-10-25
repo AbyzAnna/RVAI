@@ -94,6 +94,12 @@ describe("recommendations", () => {
     expect(rec.buildPlan!.concept).not.toMatch(/Photoshop/);
   });
 
+  it("adds a plan when no alternative runs on the person's platform", () => {
+    const p = profile({ mustHaves: ["layers", "masks"], platforms: ["ios"] });
+    const rec = buildRecommendation(p, compareAlternatives(p, photoshop), catalog);
+    expect(rec.buildPlan?.reason).toMatch(/run on ios/);
+  });
+
   it("skips the plan when coverage is good enough", () => {
     const p = profile({ mustHaves: ["layers", "masks"] });
     expect(buildRecommendation(p, compareAlternatives(p, photoshop), catalog).buildPlan).toBeNull();
