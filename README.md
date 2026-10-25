@@ -81,6 +81,10 @@ const { result, trace } = await run("I want to make beats like in Ableton", { of
 console.log(formatResult(result));
 ```
 
+## Rebuild an app
+
+Open `/ui/rebuild.html` (linked as "Rebuild an app" in the menu). Type an app or website name, and research agents describe it from public information in parallel. Pick the features you want, add your own mods, choose an AI model and your system, and download **one file** that runs: an `.html` app that opens in any browser, or a standard-library Python `.py` desktop app. It needs `OPENROUTER_API_KEY` (or `ANTHROPIC_API_KEY`); without one it still returns a working offline template. API: `POST /api/rebuild/research {name}`, `POST /api/rebuild/build`, `GET /api/rebuild/models`. See [PLAN_AND_LEGAL.md](PLAN_AND_LEGAL.md#app-rebuilder-rebuilding-from-public-information) for how it stays clean-room.
+
 ## Tests
 
 ```bash
@@ -167,5 +171,5 @@ CI (`.github/workflows/catalog-checks.yml`) runs with no dependency installs:
 - Python catalog/metadata tests: `python -m unittest discover -s tests -v`
 - JSON validation of `data/*.json`
 - Syntax check of every `ui/*.js` file as an ES module
-- UI Node tests: `node --test ui/*.test.mjs` (website template, shell, backend adapter)
+- UI Node tests: `node --test ui/*.test.mjs` (website template, shell, backend adapter, rebuild page)
 - Dev proxy test: `tests/test_dev_server.py` (part of the unittest run)

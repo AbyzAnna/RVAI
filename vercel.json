@@ -4,12 +4,45 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "functions": {
-    "api/recommend.js": { "includeFiles": "{data,dist}/**", "maxDuration": 60 },
-    "api/health.js": { "includeFiles": "dist/**" },
-    "api/examples.js": { "includeFiles": "dist/**" },
-    "api/agents.js": { "includeFiles": "dist/**" },
-    "api/auth/[action].js": { "includeFiles": "dist/**" }
+    "api/recommend.js": {
+      "includeFiles": "{data,dist}/**",
+      "maxDuration": 60
+    },
+    "api/health.js": {
+      "includeFiles": "dist/**"
+    },
+    "api/examples.js": {
+      "includeFiles": "dist/**"
+    },
+    "api/agents.js": {
+      "includeFiles": "dist/**"
+    },
+    "api/auth/[action].js": {
+      "includeFiles": "dist/**"
+    },
+    "api/rebuild/research.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 60
+    },
+    "api/rebuild/build.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 300
+    },
+    "api/rebuild/models.js": {
+      "includeFiles": "dist/**"
+    }
   },
-  "redirects": [{ "source": "/", "destination": "/ui/", "permanent": false }],
-  "rewrites": [{ "source": "/simple", "destination": "/web/index.html" }]
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/ui/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/simple",
+      "destination": "/web/index.html"
+    }
+  ]
 }

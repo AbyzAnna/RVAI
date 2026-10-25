@@ -73,7 +73,7 @@ interface Step<T> {
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** Runs one step: validate its output, retry, then fall back, recording each outcome. */
-async function runStep<T>(step: Step<T>, trace: TraceEntry[]): Promise<T> {
+export async function runStep<T>(step: Step<T>, trace: TraceEntry[]): Promise<T> {
   const started = Date.now();
   const errors: string[] = [];
 

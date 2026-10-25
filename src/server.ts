@@ -6,6 +6,7 @@ import { AGENTS } from "./agents/index.js";
 import { ACTIONS, handleAuth } from "./auth.js";
 import { pickProvider } from "./llm.js";
 import { run, StepError, type RunOptions } from "./orchestrator.js";
+import { buildApp, REBUILD_MODELS, researchApp } from "./rebuild.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const PAGE = join(ROOT, "web", "index.html");
@@ -38,12 +39,12 @@ export const EXAMPLES = [
   "How do I crack Photoshop?",
 ];
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+async function readJson(req: IncomingMessage, limit = MAX_BODY): Promise<unknown> {
   let size = 0;
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     size += (chunk as Buffer).length;
-    if (size > MAX_BODY) throw new Error("request too large");
+    if (size > limit) throw new Error("request too large");
     chunks.push(chunk as Buffer);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
@@ -93,6 +94,14 @@ export function createServer(base: RunOptions = {}): Server {
         res.writeHead(200, { "Content-Type": type.startsWith("image/png") || type.includes("icon") ? type : `${type}; charset=utf-8`, "Cache-Control": "no-store" });
         return res.end(readFileSync(file));
       }
+      if (req.method === "GET" && url === "/api/rebuild/models") return send(200, { models: REBUILD_MODELS });
+      if (req.method === "POST" && url === "/api/rebuild/research") {
+        const body = (await readJson(req)) as { name?: unknown };
+        const name = typeof body.name === "string" ? body.name.trim() : "";
+        if (!name) return send(400, { error: "Type the name of an app or website." });
+        return send(200, await researchApp(name, base));
+      }
+      if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 16_384), base));
       if (req.method === "POST" && req.url === "/api/recommend") {
         const body = (await readJson(req)) as { query?: unknown; offline?: unknown };
         const query = typeof body.query === "string" ? body.query.trim().slice(0, 500) : "";
