@@ -30,6 +30,10 @@
     },
     "api/rebuild/models.js": {
       "includeFiles": "dist/**"
+    },
+    "api/rebuild/agent.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 60
     }
   },
   "redirects": [

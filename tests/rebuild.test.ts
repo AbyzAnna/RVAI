@@ -1,7 +1,7 @@
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { OPENROUTER_URL } from "../src/llm.js";
-import { buildApp, checkFile, displayTitle, extractFile, REBUILD_MODELS, researchApp, type AppProfile, type BuiltFile } from "../src/rebuild.js";
+import { buildApp, checkFile, displayTitle, extractFile, REBUILD_MODELS, researchAgent, researchApp, scriptErrors, type AppProfile, type BuiltFile } from "../src/rebuild.js";
 import { runInstructions } from "../src/rebuild-templates.js";
 import { createServer } from "../src/server.js";
 
@@ -147,6 +147,53 @@ describe("rebuild build", () => {
     const fetch = fakeOpenRouter(RESEARCH, APP);
     await buildApp({ ...BUILD, model: "some/unknown-model" }, { env, fetch });
     expect(JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body)).model).toBe(REBUILD_MODELS[0].id);
+  });
+});
+
+describe("rebuild agents and games", () => {
+  it("runs one agent at a time, and research merges agent results without calling the model again", async () => {
+    const fetch = fakeOpenRouter(RESEARCH);
+    const one = await researchAgent("Notion", "feature-mapper", { env, fetch });
+    expect((one.result as { features: unknown[] }).features).toHaveLength(4);
+    await expect(researchAgent("Notion", "nope", { env, fetch })).rejects.toThrow(/unknown agent/);
+    const merged = await researchApp("Notion", { env, fetch, urlCheck: async () => true }, { "product-profiler": RESEARCH.profile, "feature-mapper": RESEARCH.features, "stack-detective": RESEARCH.stack });
+    expect(merged.result).toMatchObject({ status: "ok", officialName: "Notion" });
+    expect(merged.trace.find((t) => t.step === "feature-mapper")?.detail).toBe("ran in parallel");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("builds games on the tested engine: the model's design, the person's colors, and mods switched on", async () => {
+    const design = { tagline: "Dig, build, survive", sky: "#1e5bd8", skyNight: "#06122e", accent: "#ffd23f", worldStyle: "hills", blocks: [{ key: "grass", name: "Moss", color: "#2f9e44" }],
+      survival: true, creative: true, crafting: true, dayNight: true, nightCreatures: true, coop: false, lowSpec: false, dayLengthSec: 200 };
+    const fetch = fakeOpenRouter({ ...RESEARCH, naming: { appName: "Blockreach", tagline: "" }, game_design: design });
+    const { result, trace } = await buildApp({ ...BUILD, target: "Minecraft", category: "sandbox game", summary: "A block building game",
+      features: [{ label: "Mining and building" }, { label: "Co-op on LAN", custom: true }], notes: "blue themed background" }, { env, fetch });
+    const f = result as BuiltFile;
+    expect(f).toMatchObject({ engine: "rvai-blocks", source: "ai", filename: "blockreach-alt-to-minecraft.html" });
+    expect(trace.map((t) => t.step)).toEqual(["guard-input", "namer", "game-designer", "file-checker"]);
+    expect(f.content).toContain('"sky":"#1e5bd8"');
+    expect(f.content).toContain('"coop":true');
+    expect(f.content).toContain('"name":"Moss"');
+    expect(scriptErrors(f.content)).toEqual([]);
+    const designCall = JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body));
+    expect(designCall.messages[1].content).toContain("blue themed background");
+  });
+
+  it("still gives a playable game with no AI key", async () => {
+    const f = (await buildApp({ ...BUILD, target: "Minecraft", category: "sandbox game" }, { env: {} })).result as BuiltFile;
+    expect(f).toMatchObject({ engine: "rvai-blocks", source: "template" });
+    expect(f.content).toContain("__rvaiGame");
+    expect(checkFile(f.content, "html")).toEqual([]);
+  });
+
+  it("rejects a file whose script doesn't compile and tells the model why on the retry", async () => {
+    const broken = APP.replace('localStorage.setItem("x","1")', "let ny = 1; let ny = 2;");
+    const replies = [broken, APP];
+    const fetch = fakeOpenRouter(RESEARCH, () => replies.shift()!);
+    const { result } = await buildApp(BUILD, { env, fetch });
+    expect((result as BuiltFile).source).toBe("ai");
+    const retry = JSON.parse(String((fetch.mock.calls[2][1] as RequestInit).body)).messages[1].content;
+    expect(retry).toMatch(/rejected because it has a script error \(Identifier 'ny' has already been declared\)/);
   });
 });
 

@@ -12,11 +12,19 @@ const RESEARCH_AGENTS = [
 ];
 const BUILD_AGENTS = [
   ['namer', 'Namer', 'Picks an original name'],
-  ['app-builder', 'App Builder', 'Writes the whole app in one file'],
-  ['file-checker', 'File Checker', 'Complete, self-contained, no piracy'],
+  ['app-builder', 'App Builder', 'Writes the app, or designs the game for RVAI’s game engine'],
+  ['file-checker', 'File Checker', 'Compiles every script, self-contained, no piracy'],
 ];
 const EXAMPLES = ['Notion', 'Minecraft', 'Trello', 'Duolingo', 'Photoshop', 'Spotify'];
 const STATUS = { waiting: 'Waiting', working: 'Working', ok: 'Done', fallback: 'Used backup', failed: 'Failed', blocked: 'Blocked' };
+/** One line on what an agent found, shown on its card as soon as it finishes. */
+function agentSummary(agent, r) {
+  if (!r) return '';
+  if (agent === 'product-profiler') return r.known === false ? 'Not recognized: using a best guess' : `Found ${r.officialName} · ${r.category}`;
+  if (agent === 'feature-mapper') return `${r.features?.length || 0} features mapped, ${(r.features || []).filter(f => f.core).length} core`;
+  if (agent === 'stack-detective') return r.likely?.length ? `Likely ${r.likely.slice(0, 3).join(', ')}` : 'No clear public signals';
+  return '';
+}
 const secs = ms => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 
 // The preview runs without same-origin access, where localStorage throws; give it an in-memory one.
@@ -95,8 +103,26 @@ export async function mountRebuild(root, { app = '', notes = '', onFile } = {}) 
     RESEARCH_AGENTS.slice(0, 3).forEach(([aid]) => setAgent(aid, 'working'));
     $('research-btn').disabled = true;
     try {
-      const { result, trace } = await post('/api/rebuild/research', { name });
-      for (const t of trace || []) setAgent(t.step, t.status, secs(t.ms));
+      // Each agent is its own request, so they really run side by side and each card finishes on its own.
+      const parts = {};
+      let refusal = null;
+      await Promise.all(RESEARCH_AGENTS.slice(0, 3).map(async ([aid]) => {
+        const started = Date.now();
+        try {
+          const { result, trace } = await post('/api/rebuild/agent', { name, agent: aid });
+          if (result?.status === 'refused') { refusal = result; setAgent(aid, 'blocked'); return; }
+          const t = (trace || []).find(x => x.step === aid);
+          if (result != null) parts[aid] = result;
+          setAgent(aid, t?.status || 'ok', secs(Date.now() - started));
+          const found = agentSummary(aid, result);
+          if (found) root.querySelector(`[data-agent="${aid}"] p`).textContent = found;
+        } catch { setAgent(aid, 'failed'); }
+      }));
+      if (refusal) { $('search-err').textContent = refusal.message; return; }
+      setAgent('link-checker', 'working');
+      const { result, trace } = await post('/api/rebuild/research', { name, parts });
+      const link = (trace || []).find(t => t.step === 'link-checker');
+      if (link) setAgent('link-checker', link.status, secs(link.ms));
       if (result.status === 'refused') { RESEARCH_AGENTS.forEach(([aid]) => setAgent(aid, 'blocked')); $('search-err').textContent = result.message; return; }
       if (result.source === 'fallback') RESEARCH_AGENTS.forEach(([aid]) => setAgent(aid, 'fallback', 'no AI key'));
       showProfile(result);
@@ -175,9 +201,9 @@ export async function mountRebuild(root, { app = '', notes = '', onFile } = {}) 
     $('build-btn').disabled = true;
     try {
       const { result, trace } = await post('/api/rebuild/build', body);
-      for (const t of trace || []) setAgent(t.step, t.status, secs(t.ms));
+      for (const t of trace || []) setAgent(t.step === 'game-designer' ? 'app-builder' : t.step, t.status, secs(t.ms));
       if (result.status === 'refused') { $('build-err').textContent = result.message; return; }
-      setAgent('file-checker', 'ok', result.source === 'ai' ? 'passed' : 'template');
+      if (!trace?.some(t => t.step === 'file-checker')) setAgent('file-checker', 'ok', result.source === 'ai' ? 'scripts compile' : 'template');
       showResult(result);
       onFile?.(result);
     } catch (err) {
@@ -190,7 +216,8 @@ export async function mountRebuild(root, { app = '', notes = '', onFile } = {}) 
     const spec = downloadSpec(file);
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = URL.createObjectURL(new Blob([spec.text], { type: spec.type }));
-    const label = file.source === 'ai' ? `Built by ${models.find(m => m.id === file.model)?.label || file.model}` : 'Offline starter template';
+    const by = models.find(m => m.id === file.model)?.label || file.model;
+    const label = file.engine ? (file.source === 'ai' ? `Designed by ${by} · RVAI game engine` : 'RVAI game engine') : file.source === 'ai' ? `Built by ${by}` : 'Offline starter template';
     $('file-card').replaceChildren(
       el('div', { className: 'file-head' }, el('span', { className: 'file-icon', textContent: file.format === 'html' ? 'HTML' : 'PY' }),
         el('div', {}, el('span', { className: 'eyebrow', textContent: 'ONE FILE · READY TO RUN' }), el('h3', { textContent: file.displayTitle || displayTitle(file.appName, state.profile.officialName, file.mods || []) }))),
