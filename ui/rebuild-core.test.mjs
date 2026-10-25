@@ -22,3 +22,14 @@ test('builds the request with chosen features first and mods marked custom', () 
   assert.equal(body.notes, 'cozy');
   assert.equal(displayTitle('BlockForge', 'Minecraft', ['co-op on LAN']), 'BlockForge (alternative to Minecraft · mods: co-op on LAN)');
 });
+
+test('spots requests to build the app and finds the product name', async () => {
+  const { rebuildIntent, targetFrom } = await import('data:text/javascript;base64,' + Buffer.from(readFileSync(new URL('./rebuild-core.js', import.meta.url), 'utf8')).toString('base64'));
+  assert.deepEqual(rebuildIntent('Create something new, i want to create a new app similar to it'), { target: null });
+  assert.deepEqual(rebuildIntent('build my own version of Notion'), { target: 'Notion' });
+  assert.deepEqual(rebuildIntent('I want to make a game like Minecraft with co-op'), { target: 'Minecraft' });
+  assert.equal(rebuildIntent('I need something like Photoshop for my Linux laptop'), null);
+  assert.equal(rebuildIntent('Free replacement for Microsoft Office on my Mac'), null);
+  assert.equal(targetFrom('similar to it'), null);
+  assert.equal(targetFrom('something like Adobe Premiere Pro, but free'), 'Adobe Premiere Pro');
+});
