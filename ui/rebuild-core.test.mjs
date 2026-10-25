@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const src = readFileSync(new URL('./rebuild-core.js', import.meta.url), 'utf8');
-const { detectSystem, buildBody, displayTitle } = await import('data:text/javascript;base64,' + Buffer.from(src).toString('base64'));
+const { detectSystem, buildBody, basicBody, displayTitle } = await import('data:text/javascript;base64,' + Buffer.from(src).toString('base64'));
 
 test('detects the system from the browser', () => {
   assert.deepEqual(detectSystem('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'), { os: 'windows', arch: 'x64' });
@@ -20,7 +20,18 @@ test('builds the request with chosen features first and mods marked custom', () 
   assert.deepEqual(body.features, [{ label: 'Build blocks', description: 'd', custom: false }, { label: 'co-op on LAN', description: '', custom: true }]);
   assert.deepEqual(body.system, { os: 'linux', arch: 'x64', format: 'html' });
   assert.equal(body.notes, 'cozy');
+  assert.deepEqual(body.answers, []);
   assert.equal(displayTitle('BlockForge', 'Minecraft', ['co-op on LAN']), 'BlockForge (alternative to Minecraft · mods: co-op on LAN)');
+});
+
+test('sends answers to the questions, and a basic body with core features only', () => {
+  const profile = { officialName: 'Quizlet', summary: 's', category: 'study', features: [{ id: 'a', label: 'Flashcards', description: 'd', core: true }, { id: 'b', label: 'Streaks', description: 'e', core: false }] };
+  const body = buildBody(profile, { selected: new Set(['a', 'b']), custom: ['Dark forest theme'], answers: { 'What will you study?': 'Spanish', 'Skipped?': '' }, model: 'm', os: 'macos', arch: 'arm64', format: 'html', notes: '' });
+  assert.deepEqual(body.answers, [{ question: 'What will you study?', answer: 'Spanish' }]);
+  const basic = basicBody({ ...body, plan: { pitch: 'p' } }, profile);
+  assert.deepEqual(basic.features.map(f => f.label), ['Flashcards']);
+  assert.equal(basic.basic, true);
+  assert.equal('plan' in basic, false);
 });
 
 test('spots requests to build the app and finds the product name', async () => {

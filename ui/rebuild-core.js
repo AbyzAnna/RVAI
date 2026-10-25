@@ -52,7 +52,17 @@ export function buildBody(profile, state) {
     model: state.model,
     system: { os: state.os, arch: state.arch, format: state.format },
     notes: state.notes.trim().slice(0, 500),
+    answers: Object.entries(state.answers || {}).filter(([, a]) => a).map(([question, answer]) => ({ question, answer })).slice(0, 4),
   };
+}
+
+/** The safe-mode request: only the picked core features (or the first few picked), no mods, no plan. */
+export function basicBody(body, profile) {
+  const core = new Set(profile.features.filter(f => f.core).map(f => f.label));
+  const picked = body.features.filter(f => !f.custom);
+  const features = picked.filter(f => core.has(f.label));
+  const { plan, ...rest } = body;
+  return { ...rest, features: (features.length ? features : picked.length ? picked : body.features).slice(0, 4), basic: true };
 }
 
 /** A Blob-ready download for the one finished file. */

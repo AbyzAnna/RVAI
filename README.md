@@ -83,7 +83,7 @@ console.log(formatResult(result));
 
 ## Rebuild an app
 
-Open `/ui/rebuild.html` (linked as "Rebuild an app" in the menu). Type an app or website name, and research agents describe it from public information in parallel. Pick the features you want, add your own mods, choose an AI model and your system, and download **one file** that runs: an `.html` app that opens in any browser, or a standard-library Python `.py` desktop app. It needs `OPENROUTER_API_KEY` (or `ANTHROPIC_API_KEY`); without one it still returns a working offline template. API: `POST /api/rebuild/research {name}`, `POST /api/rebuild/build`, `GET /api/rebuild/models`. See [PLAN_AND_LEGAL.md](PLAN_AND_LEGAL.md#app-rebuilder-rebuilding-from-public-information) for how it stays clean-room.
+Open `/ui/rebuild.html` (linked as "Rebuild an app" in the menu). Type an app or website name, and research agents describe it from public information in parallel. Pick the features you want, add your own mods, choose an AI model and your system, and download **one file** that runs: an `.html` app that opens in any browser, or a standard-library Python `.py` desktop app. It needs `OPENROUTER_API_KEY` (or `ANTHROPIC_API_KEY`); without one it still returns a working offline template. API: `POST /api/rebuild/research {name}`, `POST /api/rebuild/agent {name, agent}`, `POST /api/rebuild/plan`, `POST /api/rebuild/build`, `POST /api/rebuild/repair`, `GET /api/rebuild/models`. See [PLAN_AND_LEGAL.md](PLAN_AND_LEGAL.md#app-rebuilder-rebuilding-from-public-information) for how it stays clean-room.
 
 ## Tests
 

@@ -34,6 +34,14 @@
     "api/rebuild/agent.js": {
       "includeFiles": "dist/**",
       "maxDuration": 60
+    },
+    "api/rebuild/plan.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 120
+    },
+    "api/rebuild/repair.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 300
     }
   },
   "redirects": [

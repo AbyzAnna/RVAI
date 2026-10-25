@@ -63,7 +63,8 @@ type Config = z.infer<typeof Config>;
 
 /** True when the thing being rebuilt is a game the engine fits (block building, sandbox, survival, crafting). */
 export function isBlockGame(text: string): boolean {
-  return /\b(game|sandbox|voxel|block|craft|survival|terraria|minecraft|roblox)\b/i.test(text);
+  // Only block-building sandboxes: "game-like lessons" (Duolingo) or a "matching game" (Quizlet) are apps, not this engine.
+  return /\b(sandbox|voxel|block[- ]?(building|game|world)s?|crafting|survival game|terraria|minecraft|roblox)\b/i.test(text);
 }
 
 const escapeHtml = (s: string) =>

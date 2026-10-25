@@ -6,7 +6,7 @@ import { AGENTS } from "./agents/index.js";
 import { ACTIONS, handleAuth } from "./auth.js";
 import { pickProvider } from "./llm.js";
 import { requestContext, run, StepError, type RunOptions } from "./orchestrator.js";
-import { buildApp, REBUILD_MODELS, researchAgent, researchApp } from "./rebuild.js";
+import { buildApp, planApp, REBUILD_MODELS, repairApp, researchAgent, researchApp } from "./rebuild.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const PAGE = join(ROOT, "web", "index.html");
@@ -108,7 +108,9 @@ export function createServer(base: RunOptions = {}): Server {
         if (!name || typeof body.agent !== "string") return send(400, { error: "Send a name and an agent." });
         return send(200, await researchAgent(name, body.agent, base));
       }
-      if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 16_384), base));
+      if (req.method === "POST" && url === "/api/rebuild/plan") return send(200, await planApp(await readJson(req, 16_384), base));
+      if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 65_536), base));
+      if (req.method === "POST" && url === "/api/rebuild/repair") return send(200, await repairApp(await readJson(req, 512_000), base));
       if (req.method === "POST" && req.url === "/api/recommend") {
         const body = (await readJson(req)) as { query?: unknown; offline?: unknown; context?: unknown; plan?: unknown };
         const query = typeof body.query === "string" ? body.query.trim().slice(0, 500) : "";
