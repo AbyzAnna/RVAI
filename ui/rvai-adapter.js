@@ -4,19 +4,12 @@ export const MAX_QUERY = 500; // server.ts truncates queries to 500 characters
 
 export const isRecommendEndpoint = url => /\/api\/recommend\/?$/.test(new URL(url, 'http://x').pathname);
 
-// The backend is single-shot, so the conversation is folded into one query:
-// the first message (the goal) plus as many of the latest messages as fit.
+// The backend is single-shot, so each request carries only the person's latest message. Folding in the
+// earlier ones let one refused message (e.g. a piracy question) block every later request in the chat,
+// and mixed unrelated topics together.
 export function recommendQuery(messages) {
   const said = messages.filter(m => m.role === 'user' && typeof m.content === 'string').map(m => m.content.trim()).filter(Boolean);
-  if (!said.length) return '';
-  const [goal, ...rest] = said;
-  let query = goal.slice(0, MAX_QUERY);
-  const tail = [];
-  for (let i = rest.length - 1; i >= 0; i--) {
-    if (query.length + [...tail, rest[i]].join('. ').length + 2 > MAX_QUERY) break;
-    tail.unshift(rest[i]);
-  }
-  return tail.length ? `${query}. ${tail.join('. ')}` : query;
+  return said.length ? said[said.length - 1].slice(0, MAX_QUERY) : '';
 }
 
 // Anna's errors are {error: "text"} (400/404) or {error, trace} (500 from a failed step).

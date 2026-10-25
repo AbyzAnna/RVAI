@@ -160,3 +160,19 @@ test('catalog filter + handoff helpers behave on the real data', () => {
   assert.ok(prompt.includes('FreeCAD') && prompt.includes('cad'), 'keeps category keyword for app.js routing');
   assert.ok(/so that: $/.test(prompt), 'prompt is left open for the user to finish');
 });
+
+test('seed catalog joins the Alternatives page once, reviewed entries win', () => {
+  const seed = JSON.parse(read('../data/catalog.json'));
+  const { cats, items } = shell.fromSeedCatalog(seed, structuredClone(catalog));
+  assert.equal(cats.length, seed.products.length);
+  assert.ok(cats.every(c => c.id.startsWith('seed:') && c.label.startsWith('Instead of ')));
+  const urls = items.map(i => new URL(i.official_url).hostname.replace(/^www\./, ''));
+  assert.equal(new Set(urls).size, urls.length, 'each project appears once');
+  for (const reviewed of catalog) assert.ok(!urls.includes(new URL(reviewed.official_url).hostname.replace(/^www\./, '')), `${reviewed.id} stays the reviewed entry`);
+  const gimp = items.find(i => i.name === 'GIMP');
+  assert.equal(gimp.verification_status, 'seed_catalog');
+  assert.equal(gimp.license_source_url, 'https://spdx.org/licenses/GPL-3.0-or-later.html');
+  assert.ok(gimp.supported_platforms.includes('macos'));
+  assert.ok(shell.filterCatalog(items, { q: 'photoshop' }).some(i => i.name === 'GIMP'), 'searchable by the paid product it replaces');
+  assert.deepEqual(shell.fromSeedCatalog(null), { cats: [], items: [] });
+});

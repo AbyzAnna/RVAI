@@ -8,7 +8,7 @@ const TITLES = { about: 'About', alternatives: 'Alternatives', innovate: 'Innova
 const GATED = new Set(['alternatives', 'innovate']);
 const CATEGORY_ORDER = ['cad', 'video_editor', 'voxel_game'];
 const WEBSITE_RE = /\b(web ?sites?|web ?pages?|landing pages?|portfolios?|homepages?|blogs?|html)\b/i;
-const VERIFY = { source_reviewed_not_runtime_tested: 'Sources reviewed · not run-tested' };
+const VERIFY = { source_reviewed_not_runtime_tested: 'Sources reviewed · not run-tested', seed_catalog: 'RVAI seed catalog · not source-reviewed' };
 const words = s => String(s).replace(/_/g, ' ');
 
 export const resolveRoute = hash => {
@@ -28,6 +28,37 @@ export function filterCatalog(items, { q = '', category = '' } = {}, featLabel =
     return terms.every(t => hay.includes(t));
   });
 }
+// The backend's seed catalog (data/catalog.json, the one the chat uses) as Alternatives entries, so the page and
+// the chat show the same options. Each paid product becomes a category ("Instead of …"); an alternative listed
+// under several products, or already in the source-reviewed list, appears once and the reviewed entry wins.
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+const PLATFORM = { mac: 'macos' };
+const SPDX_ID = /^[A-Za-z0-9.+-]+$/; // a single SPDX id (expressions like "A OR B" get no license link)
+export function fromSeedCatalog(seed, reviewed = []) {
+  const cats = [], items = [];
+  const seen = new Map(reviewed.map(r => [hostOf(r.official_url), r]));
+  for (const p of seed?.products || []) {
+    const id = `seed:${p.id}`;
+    cats.push({ id, label: `Instead of ${p.name}`, keywords: [p.name, ...(p.aliases || [])], features: (p.features || []).map(f => ({ id: f.id, label: f.label })) });
+    for (const a of p.alternatives || []) {
+      const keywords = [p.name, ...(p.aliases || []), ...(a.vibe || [])];
+      const prior = seen.get(hostOf(a.url));
+      if (prior) { prior.keywords = [...(prior.keywords || []), ...keywords]; continue; }
+      const item = {
+        id: `seed:${a.id}`, name: a.name, category: id, official_url: a.url, license: a.license,
+        supported_platforms: (a.platforms || []).map(x => PLATFORM[x] || x),
+        features: Object.entries(a.features || {}).filter(([, s]) => s !== 'partial').map(([f]) => f),
+        license_source_url: SPDX_ID.test(a.license || '') && a.license !== 'Freeware' ? `https://spdx.org/licenses/${a.license}.html` : undefined,
+        pricing_type: a.openSource ? 'free_open_source' : 'freeware', verification_status: 'seed_catalog', catalog_version: seed.version,
+        notes: a.notes ? [a.notes] : [], keywords
+      };
+      seen.set(hostOf(a.url), item);
+      items.push(item);
+    }
+  }
+  return { cats, items };
+}
+
 // Category label is included so app.js keyword routing recognizes the goal (e.g. "3d cad", "video edit").
 export const handoffPrompt = (item, catLabel) => `I want to start from ${item.name} (${catLabel.toLowerCase()}, ${item.license}) and customize it so that: `;
 
@@ -56,11 +87,12 @@ function init() {
   };
   const CAT_ICON = { cad: 'i-cube', video_editor: 'i-film', voxel_game: 'i-blocks' };
   const safeLink = (url, text) => {
+    if (!url) return null; // nothing recorded: show nothing rather than a loud "no link" label
     try {
       const u = new URL(url);
       if (u.protocol === 'https:' || u.protocol === 'http:') return el('a', { href: u.href, target: '_blank', rel: 'noopener noreferrer', text });
     } catch { /* fall through */ }
-    return el('span', { text: `${text}: no valid link` });
+    return el('span', { class: 'no-link', text: `${text}: no valid link` });
   };
 
   // demo: null | { via: 'signup' | 'preview' } — in-memory UI selection only, cleared on reload.
@@ -217,7 +249,7 @@ function init() {
       el('div', { class: 'alt-card-head' }, el('span', { class: 'ico-badge tone-forest' }, icon(CAT_ICON[item.category] || 'i-alternatives')),
         el('h2', { text: item.name }), el('span', { class: 'tag', text: catLabel(item.category) })),
       el('div', { class: 'tags' }, [item.license || 'License not declared', VERIFY[item.verification_status] || words(item.verification_status || 'unverified'),
-        item.last_verified ? `Sources checked ${item.last_verified}` : 'Check date unknown'].map(t => el('span', { class: 'tag', text: t }))),
+        item.last_verified ? `Sources checked ${item.last_verified}` : item.catalog_version ? `Catalog ${item.catalog_version}` : 'Check date unknown'].map(t => el('span', { class: 'tag', text: t }))),
       el('p', { class: 'alt-features', text: `Documented features: ${(item.features || []).map(featLabel).join(', ') || 'none recorded'}` }),
       el('p', { class: 'alt-platforms', text: `Listed platforms: ${(item.supported_platforms || []).join(', ') || 'unknown'} · hardware fit unverified` }),
       el('div', { class: 'source-links' }, safeLink(item.official_url, 'Official site'), safeLink(item.source_repository, 'Source code'), safeLink(item.license_source_url, 'License')),
@@ -243,9 +275,10 @@ function init() {
   async function loadCatalog() {
     try {
       const get = async f => { const r = await fetch(`../data/${f}`); if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`); return r.json(); };
-      const [tax, alts] = await Promise.all([get('taxonomy.json'), get('alternatives.json')]);
+      const [tax, alts, seed] = await Promise.all([get('taxonomy.json'), get('alternatives.json'), get('catalog.json').catch(() => null)]);
       if (!Array.isArray(tax?.categories) || !Array.isArray(alts)) throw new Error('unexpected catalog shape');
-      ui.cats = tax.categories; ui.catalog = alts;
+      const extra = fromSeedCatalog(seed, alts);
+      ui.cats = [...tax.categories, ...extra.cats]; ui.catalog = [...alts, ...extra.items];
     } catch (e) { ui.error = e.message; }
     ui.loaded = true;
     renderFilters();

@@ -13,14 +13,11 @@ test('recognizes the recommend endpoint, absolute or relative', () => {
   assert.ok(!isRecommendEndpoint('/api/recommend/extra'));
 });
 
-test('query keeps the goal and the latest messages within the server limit', () => {
+test('query sends only the latest message, so an earlier refusal cannot block later requests', () => {
   const user = content => ({ role: 'user', content });
-  assert.equal(recommendQuery([user('like Photoshop'), { role: 'assistant', content: 'ok' }, user('on Linux')]), 'like Photoshop. on Linux');
-  const long = [user('GOAL'), ...Array.from({ length: 50 }, (_, i) => user(`detail number ${i}`))];
-  const q = recommendQuery(long);
-  assert.ok(q.length <= MAX_QUERY);
-  assert.ok(q.startsWith('GOAL. '));
-  assert.ok(q.endsWith('detail number 49'));
+  assert.equal(recommendQuery([user('How do I crack Photoshop?'), { role: 'assistant', content: 'refused' }, user('edit PDF forms like Acrobat')]), 'edit PDF forms like Acrobat');
+  assert.equal(recommendQuery([user('like Photoshop'), user('  ')]), 'like Photoshop');
+  assert.equal(recommendQuery([user('x'.repeat(MAX_QUERY + 50))]).length, MAX_QUERY);
   assert.equal(recommendQuery([]), '');
 });
 

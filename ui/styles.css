@@ -79,6 +79,7 @@ html[data-route=innovate] .binary-rain{display:none}
 .gnav-brand .rvai-mark{filter:drop-shadow(0 6px 12px rgba(31,191,113,.3));transition:transform .45s var(--ease)}
 .gnav-brand:hover .rvai-mark{transform:rotate(-8deg) scale(1.06)}
 .global-nav nav{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.global-nav nav::-webkit-scrollbar{display:none}
 .global-nav ul{display:flex;gap:4px;list-style:none;margin:0;padding:3px}
 .global-nav nav a{display:flex;align-items:center;gap:7px;white-space:nowrap;text-decoration:none;color:var(--ink-2);font-size:13px;font-weight:500;padding:8px 12px;border-radius:10px;transition:background-color .2s,color .2s,box-shadow .2s}
 .global-nav nav a .ico{color:var(--ic,var(--mint));transition:transform .3s var(--ease)}
@@ -511,6 +512,12 @@ html[data-route=innovate] .binary-rain{display:none}
   .device-grid{grid-template-columns:1fr}
   .project-workspace{width:92vw}
   .binary-rain{opacity:.12}}
+/* narrower windows: inactive tabs go icon-only so the top menu fits without a scrollbar */
+@media(max-width:1180px){.global-nav nav a:not([aria-current]) span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+.source-links .no-link{color:var(--ink-3);font-size:12px}
+.alt-card-head h2{overflow-wrap:anywhere}
+/* page titles (Alternatives, OpenSource): a looser pixel grid so the heading stays legible at small sizes */
+.page-head .pixel-title{-webkit-mask-image:repeating-linear-gradient(0deg,#000 0 6px,transparent 6px 7px),repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 7px);mask-image:repeating-linear-gradient(0deg,#000 0 6px,transparent 6px 7px),repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 7px)}
 /* very narrow: icon-only nav for inactive items; labels stay available to assistive tech */
 @media(max-width:480px){.global-nav nav a:not([aria-current]) span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
 
