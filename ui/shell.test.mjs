@@ -37,21 +37,21 @@ test('all element IDs in index.html are unique', () => {
   assert.deepEqual(ids.filter((v, i) => ids.indexOf(v) !== i), []);
 });
 
-test('global nav: four links in order with exact labels, About current by default', () => {
+test('global nav: three plain links in order with exact labels, Home current by default', () => {
   const nav = html.match(/<nav aria-label="Main sections">[\s\S]*?<\/nav>/)?.[0];
   assert.ok(nav, 'labelled main nav');
   // Link content = decorative inline SVG icon + visible text label; the accessible name is the text.
   const links = [...nav.matchAll(/<a href="#(\w+)" data-route="(\w+)"([^>]*)>([\s\S]*?)<\/a>/g)];
-  assert.deepEqual(links.map(m => [m[1], m[2], m[4].replace(/<[^>]+>/g, '').trim()]), [['about', 'about', 'About'], ['alternatives', 'alternatives', 'Alternatives'],
-    ['innovate', 'innovate', 'Innovate'], ['opensource', 'opensource', 'RVAI OpenSource']]);
+  assert.deepEqual(links.map(m => [m[1], m[2], m[4].replace(/<[^>]+>/g, '').trim()]), [['about', 'about', 'Home'], ['alternatives', 'alternatives', 'Find software'],
+    ['innovate', 'innovate', 'Build with AI']]);
   assert.deepEqual(links.filter(m => /aria-current="page"/.test(m[3])).map(m => m[1]), ['about']);
-  assert.equal(count(html, /data-route="/g), 4);
+  assert.equal(count(html, /data-route="/g), 3);
 });
 
 test('icon + logo contract: local SVG sprite, distinct nav icons hidden from AT, accessible logo with text fallback', () => {
   const nav = html.match(/<nav aria-label="Main sections">[\s\S]*?<\/nav>/)[0];
   const icons = [...nav.matchAll(/<svg class="ico" aria-hidden="true"[^>]*><use href="#(i-[\w-]+)"\/><\/svg>/g)].map(m => m[1]);
-  assert.deepEqual(icons, ['i-about', 'i-alternatives', 'i-innovate', 'i-opensource'], 'one distinct icon per nav item');
+  assert.deepEqual(icons, ['i-about', 'i-alternatives', 'i-innovate'], 'one distinct icon per nav item');
   for (const id of [...new Set(html.match(/<use href="#([\w-]+)"/g).map(u => u.slice('<use href="#'.length, -1)))]) {
     assert.ok(new RegExp(`<symbol id="${id}"`).test(html), `#${id} is defined locally as a <symbol>`);
   }

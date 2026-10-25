@@ -4,7 +4,7 @@
 // UI-only: no accounts, no storage, no network beyond reading the static catalog files. Real sign-up,
 // authorization and search belong to Anna's backend. Talks to app.js only through existing element IDs.
 export const ROUTES = ['about', 'alternatives', 'innovate', 'opensource'];
-const TITLES = { about: 'About', alternatives: 'Alternatives', innovate: 'Innovate', opensource: 'RVAI OpenSource' };
+const TITLES = { about: 'Home', alternatives: 'Find software', innovate: 'Build with AI', opensource: 'RVAI OpenSource' };
 const GATED = new Set(['alternatives', 'innovate']);
 const CATEGORY_ORDER = ['cad', 'video_editor', 'voxel_game'];
 const WEBSITE_RE = /\b(web ?sites?|web ?pages?|landing pages?|portfolios?|homepages?|blogs?|html)\b/i;
@@ -156,7 +156,7 @@ function init() {
       : 'Preview demo — no account, nothing saved. Authentication will connect later.';
     const h = ui.pending?.handoff;
     $('chooser-handoff').hidden = !h;
-    if (h) $('chooser-handoff').textContent = `Choose Innovate to continue customizing ${h.item.name}.`;
+    if (h) $('chooser-handoff').textContent = `Choose Build with AI to keep customizing ${h.item.name}.`;
     setStep('chooser');
   }
   $('signup-form').addEventListener('submit', e => {
@@ -238,11 +238,15 @@ function init() {
   // ---------- Alternatives (third-party curated catalog) ----------
   const catLabel = id => ui.cats.find(c => c.id === id)?.label || words(id);
   const featLabel = f => ui.cats.flatMap(c => c.features).find(x => x.id === f)?.label || words(f);
+  // A few chips for the main categories; the many "Instead of …" products go in one dropdown to keep it short.
   function renderFilters() {
-    const opts = [['', 'All'], ...sortCategories(ui.cats).map(c => [c.id, c.label])];
-    $('alt-filters').replaceChildren(...opts.map(([id, text]) => el('button', {
-      type: 'button', class: 'filter-chip', 'aria-pressed': String(ui.category === id), text,
-      onclick: () => { ui.category = id; renderFilters(); renderCatalog(); } })));
+    const cats = sortCategories(ui.cats), main = cats.filter(c => !c.id.startsWith('seed:')), seed = cats.filter(c => c.id.startsWith('seed:'));
+    const pick = id => { ui.category = id; renderFilters(); renderCatalog(); };
+    const chips = [['', 'All'], ...main.map(c => [c.id, c.label])].map(([id, text]) => el('button', {
+      type: 'button', class: 'filter-chip', 'aria-pressed': String(ui.category === id), text, onclick: () => pick(id) }));
+    const select = seed.length ? el('select', { class: 'filter-select', 'aria-label': 'Replaces a paid product', onchange: e => pick(e.target.value) },
+      el('option', { value: '', text: 'Replaces…' }), seed.map(c => el('option', { value: c.id, text: c.label.replace(/^Instead of /, ''), selected: ui.category === c.id }))) : null;
+    $('alt-filters').replaceChildren(...chips, select);
   }
   function card(item) {
     return el('article', { class: 'alt-card' },
@@ -254,7 +258,7 @@ function init() {
       el('p', { class: 'alt-platforms', text: `Listed platforms: ${(item.supported_platforms || []).join(', ') || 'unknown'} · hardware fit unverified` }),
       el('div', { class: 'source-links' }, safeLink(item.official_url, 'Official site'), safeLink(item.source_repository, 'Source code'), safeLink(item.license_source_url, 'License')),
       (item.notes || []).length ? el('details', {}, el('summary', { text: 'Notes & caveats' }), item.notes.map(n => el('p', { text: n }))) : null,
-      el('button', { type: 'button', class: 'btn-secondary small', text: 'Customize in Innovate →',
+      el('button', { type: 'button', class: 'btn-secondary small', text: 'Build on this →',
         onclick: () => request('innovate', { handoff: { item, prompt: handoffPrompt(item, catLabel(item.category)) } }) }));
   }
   function renderCatalog() {
@@ -267,9 +271,9 @@ function init() {
     out.replaceChildren(el('div', { class: 'empty-state small' },
       el('h2', { text: isWebsiteQuery(q) ? 'No website builders in this sample yet' : 'Nothing in this sample matches' }),
       el('p', { text: isWebsiteQuery(q)
-        ? 'This small curated list doesn’t include website tools yet. That’s a gap in our sample, not evidence that none exist. You can plan an original website in Innovate.'
-        : 'This is a small hand-reviewed sample, so a miss here doesn’t mean no free alternative exists. Try another word, clear the filter, or build it in Innovate.' }),
-      el('button', { type: 'button', class: 'btn-primary', text: 'Go to Innovate', onclick: () => request('innovate') })));
+        ? 'No website tools here yet. You can plan your own website with AI.'
+        : 'Try another word, or ask the AI to search for you.' }),
+      el('button', { type: 'button', class: 'btn-primary', text: 'Build with AI', onclick: () => request('innovate') })));
   }
   $('alt-search').addEventListener('input', renderCatalog);
   async function loadCatalog() {
@@ -316,5 +320,6 @@ function init() {
   initMotion();
   renderCatalog();
   loadCatalog();
+  activateDemo('preview'); // no accounts yet: open everything in preview mode, no sign-up dialog
   if (location.hash) onHash(false); else show('about', false);
 }
