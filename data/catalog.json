@@ -1,0 +1,1577 @@
+{
+  "$schema": "../catalog.schema.json",
+  "version": "2026-10-25",
+  "products": [
+    {
+      "id": "photoshop",
+      "name": "Adobe Photoshop",
+      "vendor": "Adobe",
+      "aliases": [
+        "photoshop",
+        "ps"
+      ],
+      "category": "creative",
+      "vibe": [
+        "professional",
+        "dense"
+      ],
+      "features": [
+        {
+          "id": "layers",
+          "label": "Layers and blend modes",
+          "keywords": [
+            "layer",
+            "layers",
+            "blend"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "masks",
+          "label": "Layer masks",
+          "keywords": [
+            "mask",
+            "masks",
+            "masking"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "selection-tools",
+          "label": "Advanced selection tools",
+          "keywords": [
+            "select",
+            "selection",
+            "lasso",
+            "cut out",
+            "cutout"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "raw-editing",
+          "label": "RAW photo editing",
+          "keywords": [
+            "raw",
+            "photo editing",
+            "photos"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "brushes",
+          "label": "Painting and brush engine",
+          "keywords": [
+            "brush",
+            "brushes",
+            "paint",
+            "painting",
+            "drawing"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "content-aware-fill",
+          "label": "Content-aware fill / healing",
+          "keywords": [
+            "content-aware",
+            "remove object",
+            "healing",
+            "heal",
+            "retouch"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "psd-support",
+          "label": "Open and save PSD files",
+          "keywords": [
+            "psd"
+          ],
+          "weight": 1
+        },
+        {
+          "id": "generative-ai",
+          "label": "Generative AI fill",
+          "keywords": [
+            "generative",
+            "ai fill",
+            "ai"
+          ],
+          "weight": 1
+        },
+        {
+          "id": "text-tools",
+          "label": "Text and typography",
+          "keywords": [
+            "text",
+            "typography",
+            "font"
+          ],
+          "weight": 1
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "gimp",
+          "name": "GIMP",
+          "url": "https://www.gimp.org",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "layers": "full",
+            "masks": "full",
+            "selection-tools": "full",
+            "raw-editing": "partial",
+            "brushes": "full",
+            "content-aware-fill": "plugin",
+            "psd-support": "partial",
+            "generative-ai": "plugin",
+            "text-tools": "full"
+          },
+          "vibe": [
+            "professional",
+            "dense",
+            "technical"
+          ],
+          "workarounds": {
+            "raw-editing": "Open RAW files through darktable or RawTherapee, which GIMP hands off to automatically.",
+            "content-aware-fill": "Use the Heal tool or the Resynthesizer plug-in (GPL).",
+            "generative-ai": "Run an open model locally, e.g. the GIMP Stable Diffusion plug-ins, and check each model's license.",
+            "psd-support": "GIMP opens layered PSDs; adjustment layers and smart objects are flattened."
+          }
+        },
+        {
+          "id": "krita",
+          "name": "Krita",
+          "url": "https://krita.org",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "android"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "layers": "full",
+            "masks": "full",
+            "selection-tools": "partial",
+            "brushes": "full",
+            "psd-support": "partial",
+            "text-tools": "full"
+          },
+          "vibe": [
+            "artistic",
+            "friendly",
+            "playful"
+          ],
+          "workarounds": {
+            "raw-editing": "Pair Krita with darktable for photo work."
+          },
+          "notes": "Built for digital painting rather than photo retouching."
+        },
+        {
+          "id": "photopea",
+          "name": "Photopea",
+          "url": "https://www.photopea.com",
+          "license": "Freeware",
+          "openSource": false,
+          "platforms": [
+            "web"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "layers": "full",
+            "masks": "full",
+            "selection-tools": "full",
+            "raw-editing": "partial",
+            "brushes": "partial",
+            "content-aware-fill": "partial",
+            "psd-support": "full",
+            "text-tools": "full"
+          },
+          "vibe": [
+            "professional",
+            "familiar"
+          ],
+          "notes": "Free with ads; not open source. Runs in the browser, so it works on low-end laptops and Chromebooks."
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Adobe Creative Cloud for students and teachers",
+          "url": "https://www.adobe.com/creativecloud/buy/students.html",
+          "eligibility": "Students and teachers at accredited schools"
+        }
+      ]
+    },
+    {
+      "id": "illustrator",
+      "name": "Adobe Illustrator",
+      "vendor": "Adobe",
+      "aliases": [
+        "illustrator",
+        "ai vector"
+      ],
+      "category": "creative",
+      "vibe": [
+        "professional",
+        "precise"
+      ],
+      "features": [
+        {
+          "id": "vector-paths",
+          "label": "Bezier paths and shapes",
+          "keywords": [
+            "vector",
+            "bezier",
+            "path",
+            "shapes",
+            "logo"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "svg-export",
+          "label": "SVG export",
+          "keywords": [
+            "svg"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "pdf-export",
+          "label": "Print-ready PDF / CMYK",
+          "keywords": [
+            "pdf",
+            "print",
+            "cmyk"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "typography",
+          "label": "Text on path and typography",
+          "keywords": [
+            "text",
+            "typography",
+            "font"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "image-trace",
+          "label": "Image trace (raster to vector)",
+          "keywords": [
+            "trace",
+            "vectorize"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "artboards",
+          "label": "Multiple artboards",
+          "keywords": [
+            "artboard",
+            "artboards",
+            "pages"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "inkscape",
+          "name": "Inkscape",
+          "url": "https://inkscape.org",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "vector-paths": "full",
+            "svg-export": "full",
+            "pdf-export": "partial",
+            "typography": "full",
+            "image-trace": "full",
+            "artboards": "full"
+          },
+          "vibe": [
+            "professional",
+            "technical"
+          ],
+          "workarounds": {
+            "pdf-export": "Export RGB PDF from Inkscape, then convert to CMYK with Scribus (GPL)."
+          }
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Adobe Creative Cloud for students and teachers",
+          "url": "https://www.adobe.com/creativecloud/buy/students.html",
+          "eligibility": "Students and teachers at accredited schools"
+        }
+      ]
+    },
+    {
+      "id": "premiere-pro",
+      "name": "Adobe Premiere Pro",
+      "vendor": "Adobe",
+      "aliases": [
+        "premiere",
+        "premiere pro"
+      ],
+      "category": "video",
+      "vibe": [
+        "professional"
+      ],
+      "features": [
+        {
+          "id": "multitrack-timeline",
+          "label": "Multi-track timeline",
+          "keywords": [
+            "timeline",
+            "tracks",
+            "edit video",
+            "video editing",
+            "cut video"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "transitions-effects",
+          "label": "Transitions and effects",
+          "keywords": [
+            "transition",
+            "transitions",
+            "effects"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "color-grading",
+          "label": "Color grading",
+          "keywords": [
+            "color",
+            "grading",
+            "lut"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "audio-mixing",
+          "label": "Audio mixing",
+          "keywords": [
+            "audio",
+            "mix",
+            "sound"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "titles",
+          "label": "Titles and captions",
+          "keywords": [
+            "title",
+            "titles",
+            "captions",
+            "subtitles"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "proxy-editing",
+          "label": "Proxy editing for slow machines",
+          "keywords": [
+            "proxy",
+            "slow laptop",
+            "4k"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "export-presets",
+          "label": "Export presets for YouTube and social",
+          "keywords": [
+            "youtube",
+            "export",
+            "tiktok",
+            "social"
+          ],
+          "weight": 1
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "kdenlive",
+          "name": "Kdenlive",
+          "url": "https://kdenlive.org",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "multitrack-timeline": "full",
+            "transitions-effects": "full",
+            "color-grading": "partial",
+            "audio-mixing": "full",
+            "titles": "full",
+            "proxy-editing": "full",
+            "export-presets": "full"
+          },
+          "vibe": [
+            "professional",
+            "friendly"
+          ],
+          "workarounds": {
+            "color-grading": "Kdenlive has scopes and curves; for heavy grading, round-trip through DaVinci Resolve's free edition."
+          }
+        },
+        {
+          "id": "shotcut",
+          "name": "Shotcut",
+          "url": "https://shotcut.org",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "multitrack-timeline": "full",
+            "transitions-effects": "full",
+            "color-grading": "partial",
+            "audio-mixing": "full",
+            "titles": "partial",
+            "proxy-editing": "full",
+            "export-presets": "full"
+          },
+          "vibe": [
+            "simple",
+            "friendly"
+          ]
+        },
+        {
+          "id": "davinci-resolve",
+          "name": "DaVinci Resolve (free edition)",
+          "url": "https://www.blackmagicdesign.com/products/davinciresolve",
+          "license": "Freeware",
+          "openSource": false,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "multitrack-timeline": "full",
+            "transitions-effects": "full",
+            "color-grading": "full",
+            "audio-mixing": "full",
+            "titles": "full",
+            "proxy-editing": "full",
+            "export-presets": "full"
+          },
+          "vibe": [
+            "professional",
+            "dense"
+          ],
+          "notes": "Free of charge but not open source; needs a fairly strong GPU."
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Adobe Creative Cloud for students and teachers",
+          "url": "https://www.adobe.com/creativecloud/buy/students.html",
+          "eligibility": "Students and teachers at accredited schools"
+        }
+      ]
+    },
+    {
+      "id": "microsoft-office",
+      "name": "Microsoft 365 (Office)",
+      "vendor": "Microsoft",
+      "aliases": [
+        "microsoft office",
+        "ms office",
+        "office 365",
+        "microsoft 365",
+        "word",
+        "excel",
+        "powerpoint"
+      ],
+      "category": "office",
+      "vibe": [
+        "familiar"
+      ],
+      "features": [
+        {
+          "id": "word-processing",
+          "label": "Word processing",
+          "keywords": [
+            "word",
+            "documents",
+            "essay",
+            "write",
+            "writing",
+            "docx"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "spreadsheets",
+          "label": "Spreadsheets and formulas",
+          "keywords": [
+            "excel",
+            "spreadsheet",
+            "spreadsheets",
+            "formulas",
+            "xlsx"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "presentations",
+          "label": "Presentations",
+          "keywords": [
+            "powerpoint",
+            "slides",
+            "presentation",
+            "presentations",
+            "pptx"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "ooxml-compat",
+          "label": "Good .docx/.xlsx/.pptx compatibility",
+          "keywords": [
+            "docx",
+            "xlsx",
+            "pptx",
+            "compatibility",
+            "compatible"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "realtime-collab",
+          "label": "Real-time collaboration",
+          "keywords": [
+            "collaborate",
+            "collaboration",
+            "share",
+            "together"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "pdf-export",
+          "label": "PDF export",
+          "keywords": [
+            "pdf"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "macros",
+          "label": "Macros and scripting",
+          "keywords": [
+            "macro",
+            "macros",
+            "vba",
+            "scripting"
+          ],
+          "weight": 1
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "libreoffice",
+          "name": "LibreOffice",
+          "url": "https://www.libreoffice.org",
+          "license": "MPL-2.0",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "word-processing": "full",
+            "spreadsheets": "full",
+            "presentations": "full",
+            "ooxml-compat": "partial",
+            "pdf-export": "full",
+            "macros": "full"
+          },
+          "vibe": [
+            "familiar",
+            "technical"
+          ],
+          "workarounds": {
+            "realtime-collab": "Use a self-hosted Nextcloud with Collabora Online, or share files and take turns.",
+            "ooxml-compat": "Save in the original format and check complex layouts before sending.",
+            "macros": "LibreOffice Basic and Python macros work; VBA macros only partly run."
+          }
+        },
+        {
+          "id": "onlyoffice",
+          "name": "ONLYOFFICE Desktop Editors",
+          "url": "https://www.onlyoffice.com/desktop.aspx",
+          "license": "AGPL-3.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "word-processing": "full",
+            "spreadsheets": "full",
+            "presentations": "full",
+            "ooxml-compat": "full",
+            "realtime-collab": "partial",
+            "pdf-export": "full",
+            "macros": "partial"
+          },
+          "vibe": [
+            "familiar",
+            "modern"
+          ]
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Microsoft 365 Education (free for eligible students and teachers)",
+          "url": "https://www.microsoft.com/en-us/education/products/office",
+          "eligibility": "Students and teachers with a valid school email"
+        },
+        {
+          "name": "Microsoft 365 for the web (free with a Microsoft account)",
+          "url": "https://www.microsoft.com/en-us/microsoft-365/free-office-online-for-the-web",
+          "eligibility": "Anyone with a free Microsoft account"
+        }
+      ]
+    },
+    {
+      "id": "lightroom",
+      "name": "Adobe Lightroom",
+      "vendor": "Adobe",
+      "aliases": [
+        "lightroom",
+        "lr"
+      ],
+      "category": "creative",
+      "vibe": [
+        "professional",
+        "clean"
+      ],
+      "features": [
+        {
+          "id": "raw-develop",
+          "label": "RAW development",
+          "keywords": [
+            "raw",
+            "develop"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "library-management",
+          "label": "Photo library and tagging",
+          "keywords": [
+            "library",
+            "catalog",
+            "organize",
+            "tags",
+            "tagging"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "presets",
+          "label": "Presets and batch edits",
+          "keywords": [
+            "preset",
+            "presets",
+            "batch"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "local-adjustments",
+          "label": "Local adjustments and masks",
+          "keywords": [
+            "mask",
+            "local",
+            "brush"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "cloud-sync",
+          "label": "Cloud sync across devices",
+          "keywords": [
+            "cloud",
+            "sync",
+            "phone"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "lens-correction",
+          "label": "Lens corrections",
+          "keywords": [
+            "lens",
+            "distortion"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "darktable",
+          "name": "darktable",
+          "url": "https://www.darktable.org",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "raw-develop": "full",
+            "library-management": "full",
+            "presets": "full",
+            "local-adjustments": "full",
+            "lens-correction": "full"
+          },
+          "vibe": [
+            "professional",
+            "technical",
+            "dense"
+          ],
+          "workarounds": {
+            "cloud-sync": "Keep the library on a synced folder (e.g. Syncthing, MPL-2.0) and use one machine at a time."
+          }
+        },
+        {
+          "id": "rawtherapee",
+          "name": "RawTherapee",
+          "url": "https://rawtherapee.com",
+          "license": "GPL-3.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "raw-develop": "full",
+            "library-management": "partial",
+            "presets": "full",
+            "local-adjustments": "partial",
+            "lens-correction": "full"
+          },
+          "vibe": [
+            "technical"
+          ]
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Adobe Creative Cloud for students and teachers",
+          "url": "https://www.adobe.com/creativecloud/buy/students.html",
+          "eligibility": "Students and teachers at accredited schools"
+        }
+      ]
+    },
+    {
+      "id": "ableton-live",
+      "name": "Ableton Live",
+      "vendor": "Ableton",
+      "aliases": [
+        "ableton",
+        "ableton live",
+        "fl studio",
+        "logic pro"
+      ],
+      "category": "audio",
+      "vibe": [
+        "creative",
+        "playful"
+      ],
+      "features": [
+        {
+          "id": "multitrack-recording",
+          "label": "Multitrack audio recording",
+          "keywords": [
+            "record",
+            "recording",
+            "vocals",
+            "guitar"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "midi-sequencing",
+          "label": "MIDI sequencing and piano roll",
+          "keywords": [
+            "midi",
+            "piano roll",
+            "beats",
+            "beat",
+            "make music",
+            "music production"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "plugins",
+          "label": "VST / LV2 plug-in support",
+          "keywords": [
+            "vst",
+            "plugin",
+            "plugins",
+            "lv2"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "built-in-instruments",
+          "label": "Built-in synths and samplers",
+          "keywords": [
+            "synth",
+            "synths",
+            "sampler",
+            "instruments",
+            "drums"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "clip-launching",
+          "label": "Clip / session view for live jamming",
+          "keywords": [
+            "clip",
+            "session view",
+            "live performance",
+            "jam",
+            "looping"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "mixing",
+          "label": "Mixer and effects",
+          "keywords": [
+            "mix",
+            "mixing",
+            "mixer",
+            "effects",
+            "eq"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "lmms",
+          "name": "LMMS",
+          "url": "https://lmms.io",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "midi-sequencing": "full",
+            "plugins": "partial",
+            "built-in-instruments": "full",
+            "clip-launching": "plugin",
+            "mixing": "full"
+          },
+          "vibe": [
+            "playful",
+            "friendly",
+            "creative"
+          ],
+          "workarounds": {
+            "multitrack-recording": "Record audio in Audacity (GPL) or Ardour and import the clips.",
+            "clip-launching": "Use LMMS's pattern editor, or try a looper like Giada (GPL)."
+          }
+        },
+        {
+          "id": "ardour",
+          "name": "Ardour",
+          "url": "https://ardour.org",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "multitrack-recording": "full",
+            "midi-sequencing": "full",
+            "plugins": "full",
+            "built-in-instruments": "partial",
+            "clip-launching": "partial",
+            "mixing": "full"
+          },
+          "vibe": [
+            "professional",
+            "technical"
+          ],
+          "notes": "Source code is free; ready-made binaries from ardour.org are pay-what-you-want (from $1), or free through Linux distributions."
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Ableton education discount",
+          "url": "https://www.ableton.com/en/shop/education/",
+          "eligibility": "Students and teachers"
+        }
+      ]
+    },
+    {
+      "id": "autocad",
+      "name": "Autodesk AutoCAD",
+      "vendor": "Autodesk",
+      "aliases": [
+        "autocad",
+        "cad"
+      ],
+      "category": "engineering",
+      "vibe": [
+        "professional",
+        "precise"
+      ],
+      "features": [
+        {
+          "id": "2d-drafting",
+          "label": "2D drafting",
+          "keywords": [
+            "2d",
+            "drafting",
+            "floor plan",
+            "blueprint",
+            "drawing"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "3d-modeling",
+          "label": "Parametric 3D modeling",
+          "keywords": [
+            "3d",
+            "parametric",
+            "solid",
+            "3d print",
+            "3d printing"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "dwg-support",
+          "label": "DWG file support",
+          "keywords": [
+            "dwg"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "dxf-support",
+          "label": "DXF import/export",
+          "keywords": [
+            "dxf",
+            "laser",
+            "cnc"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "dimensions",
+          "label": "Dimensions and annotation",
+          "keywords": [
+            "dimension",
+            "dimensions",
+            "annotation",
+            "measure"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "scripting",
+          "label": "Scripting / automation",
+          "keywords": [
+            "script",
+            "scripting",
+            "automation",
+            "lisp",
+            "python"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "freecad",
+          "name": "FreeCAD",
+          "url": "https://www.freecad.org",
+          "license": "LGPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "2d-drafting": "partial",
+            "3d-modeling": "full",
+            "dwg-support": "partial",
+            "dxf-support": "full",
+            "dimensions": "full",
+            "scripting": "full"
+          },
+          "vibe": [
+            "technical",
+            "dense"
+          ],
+          "workarounds": {
+            "dwg-support": "Convert DWG to DXF with the free ODA File Converter (freeware), which FreeCAD can call."
+          }
+        },
+        {
+          "id": "librecad",
+          "name": "LibreCAD",
+          "url": "https://librecad.org",
+          "license": "GPL-2.0-only",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "2d-drafting": "full",
+            "dwg-support": "partial",
+            "dxf-support": "full",
+            "dimensions": "full"
+          },
+          "vibe": [
+            "simple",
+            "precise"
+          ],
+          "workarounds": {
+            "3d-modeling": "Use FreeCAD for 3D parts and LibreCAD for 2D sheets."
+          }
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Autodesk Education Plan (free for eligible students and educators)",
+          "url": "https://www.autodesk.com/education/edu-software/overview",
+          "eligibility": "Students and educators at qualified institutions"
+        }
+      ]
+    },
+    {
+      "id": "maya",
+      "name": "Autodesk Maya / 3ds Max",
+      "vendor": "Autodesk",
+      "aliases": [
+        "maya",
+        "3ds max",
+        "cinema 4d",
+        "c4d"
+      ],
+      "category": "3d",
+      "vibe": [
+        "professional",
+        "dense"
+      ],
+      "features": [
+        {
+          "id": "modeling",
+          "label": "Polygon modeling",
+          "keywords": [
+            "model",
+            "modeling",
+            "modelling",
+            "mesh"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "sculpting",
+          "label": "Sculpting",
+          "keywords": [
+            "sculpt",
+            "sculpting"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "rigging-animation",
+          "label": "Rigging and animation",
+          "keywords": [
+            "rig",
+            "rigging",
+            "animate",
+            "animation"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "rendering",
+          "label": "Path-traced rendering",
+          "keywords": [
+            "render",
+            "rendering",
+            "realistic"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "simulation",
+          "label": "Physics, cloth and fluid simulation",
+          "keywords": [
+            "simulation",
+            "cloth",
+            "fluid",
+            "physics"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "game-export",
+          "label": "Export to game engines (FBX/glTF)",
+          "keywords": [
+            "fbx",
+            "gltf",
+            "game",
+            "unity",
+            "godot"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "blender",
+          "name": "Blender",
+          "url": "https://www.blender.org",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "steep",
+          "features": {
+            "modeling": "full",
+            "sculpting": "full",
+            "rigging-animation": "full",
+            "rendering": "full",
+            "simulation": "full",
+            "game-export": "full"
+          },
+          "vibe": [
+            "professional",
+            "creative",
+            "dense"
+          ]
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Autodesk Education Plan (free for eligible students and educators)",
+          "url": "https://www.autodesk.com/education/edu-software/overview",
+          "eligibility": "Students and educators at qualified institutions"
+        }
+      ]
+    },
+    {
+      "id": "minecraft",
+      "name": "Minecraft",
+      "vendor": "Mojang Studios",
+      "aliases": [
+        "minecraft",
+        "voxel game",
+        "block game"
+      ],
+      "category": "games",
+      "vibe": [
+        "cozy",
+        "creative",
+        "blocky",
+        "playful"
+      ],
+      "features": [
+        {
+          "id": "voxel-building",
+          "label": "Block building",
+          "keywords": [
+            "build",
+            "building",
+            "blocks",
+            "voxel"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "survival-mode",
+          "label": "Survival and crafting",
+          "keywords": [
+            "survival",
+            "crafting",
+            "craft",
+            "mining"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "multiplayer",
+          "label": "Multiplayer servers",
+          "keywords": [
+            "multiplayer",
+            "friends",
+            "server",
+            "online"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "modding",
+          "label": "Mods and scripting",
+          "keywords": [
+            "mod",
+            "mods",
+            "modding",
+            "lua"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "creative-mode",
+          "label": "Creative mode",
+          "keywords": [
+            "creative mode",
+            "sandbox"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "low-end-hardware",
+          "label": "Runs on low-end hardware",
+          "keywords": [
+            "old laptop",
+            "low-end",
+            "slow computer",
+            "chromebook"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "luanti",
+          "name": "Luanti (formerly Minetest)",
+          "url": "https://www.luanti.org",
+          "license": "LGPL-2.1-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "android"
+          ],
+          "learningCurve": "easy",
+          "features": {
+            "voxel-building": "full",
+            "survival-mode": "partial",
+            "multiplayer": "full",
+            "modding": "full",
+            "creative-mode": "full",
+            "low-end-hardware": "full"
+          },
+          "vibe": [
+            "blocky",
+            "creative",
+            "cozy"
+          ],
+          "workarounds": {
+            "survival-mode": "Install an original survival game from ContentDB (content.luanti.org), such as Mineclonia or VoxeLibre; check each game's license."
+          },
+          "notes": "An engine plus games from its ContentDB; pick a game after installing."
+        }
+      ],
+      "officialDiscounts": [
+        {
+          "name": "Minecraft Education (through schools)",
+          "url": "https://education.minecraft.net",
+          "eligibility": "Students and teachers whose school has a license"
+        }
+      ]
+    },
+    {
+      "id": "civilization",
+      "name": "Sid Meier's Civilization",
+      "vendor": "Firaxis Games",
+      "aliases": [
+        "civilization",
+        "civ",
+        "civ 6",
+        "civ vi"
+      ],
+      "category": "games",
+      "vibe": [
+        "strategic",
+        "epic",
+        "turn-based"
+      ],
+      "features": [
+        {
+          "id": "turn-based-strategy",
+          "label": "Turn-based empire building",
+          "keywords": [
+            "turn-based",
+            "strategy",
+            "empire",
+            "4x"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "tech-tree",
+          "label": "Technology tree",
+          "keywords": [
+            "tech tree",
+            "technology",
+            "research"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "diplomacy",
+          "label": "Diplomacy",
+          "keywords": [
+            "diplomacy",
+            "trade",
+            "alliances"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "multiplayer",
+          "label": "Multiplayer",
+          "keywords": [
+            "multiplayer",
+            "friends",
+            "online"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "ai-opponents",
+          "label": "AI opponents",
+          "keywords": [
+            "ai opponents",
+            "computer players",
+            "single player",
+            "singleplayer"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "modding",
+          "label": "Modding",
+          "keywords": [
+            "mod",
+            "mods",
+            "modding",
+            "rulesets"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "freeciv",
+          "name": "Freeciv",
+          "url": "https://www.freeciv.org",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux",
+            "web"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "turn-based-strategy": "full",
+            "tech-tree": "full",
+            "diplomacy": "full",
+            "multiplayer": "full",
+            "ai-opponents": "full",
+            "modding": "full"
+          },
+          "vibe": [
+            "strategic",
+            "turn-based",
+            "classic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "age-of-empires",
+      "name": "Age of Empires",
+      "vendor": "Microsoft / World's Edge",
+      "aliases": [
+        "age of empires",
+        "aoe",
+        "aoe2",
+        "starcraft",
+        "rts"
+      ],
+      "category": "games",
+      "vibe": [
+        "strategic",
+        "historical",
+        "fast"
+      ],
+      "features": [
+        {
+          "id": "real-time-strategy",
+          "label": "Real-time strategy",
+          "keywords": [
+            "rts",
+            "real-time",
+            "real time strategy",
+            "strategy"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "historical-civs",
+          "label": "Historical civilizations",
+          "keywords": [
+            "historical",
+            "history",
+            "ancient",
+            "civilizations"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "multiplayer",
+          "label": "Multiplayer",
+          "keywords": [
+            "multiplayer",
+            "friends",
+            "online"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "campaign",
+          "label": "Story campaign",
+          "keywords": [
+            "campaign",
+            "story"
+          ],
+          "weight": 3
+        },
+        {
+          "id": "ai-opponents",
+          "label": "AI opponents",
+          "keywords": [
+            "ai opponents",
+            "computer players",
+            "single player",
+            "singleplayer"
+          ],
+          "weight": 2
+        },
+        {
+          "id": "modding",
+          "label": "Modding and map editor",
+          "keywords": [
+            "mod",
+            "mods",
+            "modding",
+            "map editor"
+          ],
+          "weight": 2
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "0ad",
+          "name": "0 A.D.",
+          "url": "https://play0ad.com",
+          "license": "GPL-2.0-or-later",
+          "openSource": true,
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "learningCurve": "moderate",
+          "features": {
+            "real-time-strategy": "full",
+            "historical-civs": "full",
+            "multiplayer": "full",
+            "campaign": "partial",
+            "ai-opponents": "full",
+            "modding": "full"
+          },
+          "vibe": [
+            "strategic",
+            "historical",
+            "beautiful"
+          ],
+          "workarounds": {
+            "campaign": "Play the tutorial and skirmish scenarios; community campaigns are on mod.io."
+          },
+          "notes": "Code is GPL-2.0-or-later; art and sound are CC BY-SA 3.0, so credit them if you reuse any."
+        }
+      ]
+    }
+  ]
+}

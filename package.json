@@ -1,0 +1,58 @@
+{
+  "name": "rvai",
+  "version": "1.0.0",
+  "description": "Find free and open-source alternatives to paid software and games, see what they miss, and plan original tools to fill the gaps.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "rvai": "tsx src/cli.ts",
+    "demo": "tsx src/cli.ts --offline --demo",
+    "schema": "tsx scripts/write-schema.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbyzAnna/RVAI.git"
+  },
+  "keywords": [
+    "open-source",
+    "alternatives",
+    "free-software",
+    "accessibility",
+    "agent",
+    "claude"
+  ],
+  "author": "AbyzAnna",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AbyzAnna/RVAI/issues"
+  },
+  "homepage": "https://github.com/AbyzAnna/RVAI#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "type": "module",
+  "bin": {
+    "rvai": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "data",
+    "README.md",
+    "DISCLAIMER.md",
+    "PLAN_AND_LEGAL.md",
+    "LICENSE",
+    "catalog.schema.json"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "../catalog.schema.json",
+  "products": [
+    {
+      "id": "figma",
+      "name": "Figma",
+      "vendor": "Figma, Inc.",
+      "aliases": ["figma"],
+      "category": "creative",
+      "vibe": ["modern", "collaborative"],
+      "features": [
+        { "id": "ui-design", "label": "UI and screen design", "keywords": ["ui", "screens", "app design", "mockup"], "weight": 3 },
+        { "id": "prototyping", "label": "Clickable prototypes", "keywords": ["prototype", "prototyping", "clickable"], "weight": 3 },
+        { "id": "realtime-collab", "label": "Real-time collaboration", "keywords": ["team", "collaborate", "together"], "weight": 2 },
+        { "id": "design-systems", "label": "Components and design systems", "keywords": ["components", "design system"], "weight": 2 },
+        { "id": "dev-handoff", "label": "Developer hand-off (CSS, specs)", "keywords": ["handoff", "hand-off", "css", "inspect"], "weight": 1 }
+      ],
+      "alternatives": [
+        {
+          "id": "penpot",
+          "name": "Penpot",
+          "url": "https://penpot.app",
+          "license": "MPL-2.0",
+          "openSource": true,
+          "platforms": ["web"],
+          "learningCurve": "easy",
+          "features": {
+            "ui-design": "full",
+            "prototyping": "full",
+            "realtime-collab": "full",
+            "design-systems": "full",
+            "dev-handoff": "full"
+          },
+          "vibe": ["modern", "collaborative"],
+          "notes": "Use the hosted version or self-host it."
+        }
+      ],
+      "officialDiscounts": [
+        { "name": "Figma for Education (free for students and educators)", "url": "https://www.figma.com/education/", "eligibility": "Verified students and educators" }
+      ]
+    }
+  ]
+}

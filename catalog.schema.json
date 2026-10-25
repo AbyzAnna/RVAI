@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "products": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "aliases": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "creative",
+              "office",
+              "audio",
+              "video",
+              "engineering",
+              "3d",
+              "games",
+              "other"
+            ]
+          },
+          "vibe": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "features": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "keywords": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "weight": {
+                  "default": 2,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ]
+            }
+          },
+          "alternatives": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "starts_with",
+                  "pattern": "^https:\\/\\/.*"
+                },
+                "license": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "openSource": {
+                  "type": "boolean"
+                },
+                "platforms": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "windows",
+                      "mac",
+                      "linux",
+                      "web",
+                      "android",
+                      "ios"
+                    ]
+                  }
+                },
+                "learningCurve": {
+                  "type": "string",
+                  "enum": [
+                    "easy",
+                    "moderate",
+                    "steep"
+                  ]
+                },
+                "features": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "partial",
+                      "plugin"
+                    ]
+                  }
+                },
+                "vibe": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "workarounds": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "url",
+                "license",
+                "openSource",
+                "platforms",
+                "learningCurve",
+                "features"
+              ]
+            }
+          },
+          "officialDiscounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "starts_with",
+                  "pattern": "^https:\\/\\/.*"
+                },
+                "eligibility": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "url",
+                "eligibility"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "category",
+          "features",
+          "alternatives"
+        ]
+      }
+    }
+  },
+  "required": [
+    "products"
+  ],
+  "title": "RVAI catalog",
+  "description": "Paid products, their features, and the free or open-source alternatives that replace them."
+}
