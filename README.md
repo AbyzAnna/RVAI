@@ -70,6 +70,15 @@ const { result, trace } = await run("I want to make beats like in Ableton", { of
 console.log(formatResult(result));
 ```
 
+## Research and discovery (Python)
+
+`research/` finds alternatives beyond the seed catalog: it searches the catalog first and GitHub's public API when needed, and returns candidates with evidence links and a verification status (`curated`, `automated-license-check` or `unverified`). It needs Python 3.10+ and nothing else, and can propose new catalog entries in a separate file for review. See [research/README.md](research/README.md).
+
+```bash
+python -m research "Adobe Photoshop" -r layers -r "raw editing" --platform linux
+python -m unittest discover -s research/tests -t .
+```
+
 ## Tests
 
 ```bash
