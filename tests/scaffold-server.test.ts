@@ -67,11 +67,17 @@ describe("web server", () => {
     expect(body.trace[0].step).toBe("guard-input");
   });
 
+  it("reads a follow-up together with the earlier messages it is given", async () => {
+    const body = JSON.stringify({ query: "which of these works offline?", context: ["something like Photoshop for Linux", 42] });
+    const data = await (await fetch(base + "/api/recommend", { method: "POST", body })).json();
+    expect(data.result.target.id).toBe("photoshop");
+  });
+
   it("refuses piracy and rejects empty or oversized requests", async () => {
     const refused = await (await fetch(base + "/api/recommend", { method: "POST", body: JSON.stringify({ query: "keygen for AutoCAD" }) })).json();
     expect(refused.result.status).toBe("refused");
     expect((await fetch(base + "/api/recommend", { method: "POST", body: "{}" })).status).toBe(400);
-    expect((await fetch(base + "/api/recommend", { method: "POST", body: JSON.stringify({ query: "x".repeat(5000) }) })).status).toBe(400);
+    expect((await fetch(base + "/api/recommend", { method: "POST", body: JSON.stringify({ query: "x".repeat(9000) }) })).status).toBe(400);
     expect((await fetch(base + "/nope")).status).toBe(404);
   });
 });

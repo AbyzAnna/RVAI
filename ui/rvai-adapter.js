@@ -12,6 +12,13 @@ export function recommendQuery(messages) {
   return said.length ? said[said.length - 1].slice(0, MAX_QUERY) : '';
 }
 
+// Earlier messages go along separately as `context`, so the backend can read a follow-up ("which of these works
+// offline?") with its topic. Messages the backend refused are left out, and it only ever guards the latest one.
+export function recommendContext(messages) {
+  const said = messages.filter(m => m.role === 'user' && typeof m.content === 'string' && m.content.trim());
+  return said.slice(0, -1).filter(m => !m.refused).slice(-2).map(m => m.content.trim().slice(0, MAX_QUERY));
+}
+
 // Anna's errors are {error: "text"} (400/404) or {error, trace} (500 from a failed step).
 export function recommendError(data) {
   return data && typeof data.error === 'string' && data.error.trim() ? data.error.trim() : null;
@@ -93,6 +100,18 @@ function visualOf(r) {
   };
 }
 
+// What the Brief tab shows for a live answer: the request as the backend read it and the best free option.
+function briefOf(r) {
+  const top = r.picks[0];
+  return {
+    request: r.query, replaces: r.target?.name || null,
+    best_option: top ? `${top.name} (${top.license})` : null,
+    covers: top ? `${pct(top.mustHaveCoverage)} of your must-haves` : null,
+    gaps: top ? (top.gaps || []).map(g => g.label) : [],
+    route: r.buildPlan ? 'create' : r.picks.length ? 'find' : null
+  };
+}
+
 /** Convert Anna's {result, trace} into the envelope applyAgent() understands. Throws on an unknown shape. */
 export function fromRecommend(data) {
   const r = data?.result, steps = traceSteps(data?.trace);
@@ -130,6 +149,7 @@ export function fromRecommend(data) {
       limitations: [r.attribution, live ? 'Found live by Claude: links were checked, but no person has reviewed these entries.' : null].filter(isStr)
     },
     plan: r.buildPlan ? { steps: buildPlanSteps(r.buildPlan) } : null,
+    brief: briefOf(r),
     visual: visualOf(r)
   };
 }

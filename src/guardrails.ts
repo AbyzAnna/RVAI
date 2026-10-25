@@ -66,10 +66,20 @@ const RULES: Array<{ category: GuardCategory; reason: string; patterns: RegExp[]
   },
 ];
 
+// Everyday phrases that contain a piracy word but mean something else. They are removed before the
+// rules run, so "a pirate ship game" or "a torrent client" pass while "pirate Photoshop" still doesn't.
+const HARMLESS_PHRASES = [
+  /\bpirate[- ](ship|boat|game|adventure|theme|themed|story|crew|map|party|costume|hat|captain|treasure|island|flag|radio)s?\b/gi,
+  /\bcrack(s|ed|ing)? (the |a |this )?(code|puzzle|case|cipher|riddle|joke|egg|safe|nut)s?\b/gi,
+  /\bcracked (screen|phone|glass|egg|tile|wall)s?\b/gi,
+  /\btorrent (client|app|program|software|downloader|manager)s?\b/gi,
+];
+
 /** Checks a user request before any analysis runs. */
 export function checkRequest(text: string): GuardResult {
+  const meant = HARMLESS_PHRASES.reduce((t, p) => t.replace(p, " "), text);
   for (const rule of RULES) {
-    if (rule.patterns.some((p) => p.test(text))) {
+    if (rule.patterns.some((p) => p.test(meant))) {
       return { allowed: false, category: rule.category, reason: rule.reason };
     }
   }
@@ -81,6 +91,9 @@ const BLOCKED_HOST_TERMS = [
   "fitgirl", "dodi", "igg-games", "getintopc", "filecr", "softonic", "apkmirror-mod", "repack",
 ];
 
+// Official sites of legal BitTorrent clients, which would otherwise trip the "torrent" host marker.
+const TORRENT_CLIENT_HOSTS = ["qbittorrent.org", "transmissionbt.com", "deluge-torrent.org", "webtorrent.io"];
+
 /** Returns true when a URL is safe to show: https, a real host, no piracy markers. */
 export function isSafeUrl(raw: string): boolean {
   let url: URL;
@@ -90,11 +103,14 @@ export function isSafeUrl(raw: string): boolean {
     return false;
   }
   if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (TORRENT_CLIENT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return true;
   const haystack = `${url.hostname}${url.pathname}`.toLowerCase();
   return !BLOCKED_HOST_TERMS.some((term) => haystack.includes(term));
 }
 
-const BLOCKED_OUTPUT_TEXT = /\b(crack(ed)?|keygen|warez|nulled|torrent)\b/i;
+// "torrent" alone is fine (torrent clients are legal); a torrent *of* something or a download via torrent is not.
+const BLOCKED_OUTPUT_TEXT = /\b(crack(ed)?|keygen|warez|nulled)\b|\btorrents? (of|for|file|link|download)s?\b|\b(download|get|grab)\b.{0,30}\btorrents?\b/i;
 
 /** Scans every string in an outgoing result. Returns the problems found (empty means clean). */
 export function auditOutput(value: unknown): string[] {

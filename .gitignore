@@ -9,3 +9,7 @@ __pycache__/
 *.pyc
 .venv/
 .vercel
+test-results/
+test-results-deployed/
+playwright-report/
+public/
