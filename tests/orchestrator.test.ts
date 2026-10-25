@@ -21,7 +21,7 @@ const goodProfile = {
 describe("orchestrator", () => {
   it("runs every step in order offline and records a trace", async () => {
     const { result, trace } = await run("a cozy game like Minecraft for my old laptop", { offline: true });
-    expect(trace.map((t) => t.step)).toEqual(["guard-input", "analyze", "compare", "recommend", "guard-output"]);
+    expect(trace.map((t) => t.step)).toEqual(["guard-input", "goal-analyzer", "alternative-finder", "gap-comparator", "threat-risk", "synthesizer", "guard-output"]);
     expect(trace[1]).toMatchObject({ status: "fallback", detail: expect.stringContaining("offline mode") });
     const rec = result as Recommendation;
     expect(rec.status).toBe("ok");
@@ -69,7 +69,7 @@ describe("orchestrator", () => {
     const ps = tampered.products.find((p) => p.id === "photoshop")!;
     ps.alternatives.find((a) => a.id === "gimp")!.url = "https://gimp-crack-download.example";
     const { result, trace } = await run("Photoshop with layers", { offline: true, catalog: tampered });
-    expect(trace[4]).toMatchObject({ step: "guard-output", status: "fallback" });
+    expect(trace[6]).toMatchObject({ step: "guard-output", status: "fallback" });
     const rec = result as Recommendation;
     expect(rec.picks.map((p) => p.name)).not.toContain("GIMP");
     expect(rec.picks[0].rank).toBe(1);

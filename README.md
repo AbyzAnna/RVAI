@@ -19,12 +19,15 @@ Free alternatives to Adobe Photoshop
 ## How it works
 
 ```
-request ─▶ guard input ─▶ analyze goal ─▶ (discover) ─▶ compare features ─▶ recommend ─▶ guard output ─▶ result
-              │ refuse        │ Claude, or      │ only when not   │ deterministic   │ picks, gaps,     │ drop unsafe
-              │ piracy etc.   │ keywords        │ in the catalog  │ coverage scores │ discounts, plan  │ links/text
+                                  ┌──────────────────── Orchestrator (routing, state, synthesis) ───────────────────┐
+request ─▶ guard input ─▶ Goal Analyzer ─▶ Alternative Finder ─┬─▶ Feature-Gap Comparator ─┬─▶ Recommendation ─▶ guard output ─▶ result
+           │ refuse piracy  │ Claude, or      │ catalog, or live  └─▶ Threat & Risk ────────┘   Synthesizer      │ drop unsafe
+           │ flag injection │ keywords        │ discovery           (run in parallel)           picks, gaps,     │ links/text
+                                                                                                risks, plan
 ```
 
-- **Orchestrator** (`src/orchestrator.ts`) runs the steps in order, validates each step's output with zod, retries, falls back, and keeps a trace.
+- **Orchestrator** (`src/orchestrator.ts`) routes the request through the sub-agents, holds the shared state, runs independent agents in parallel, validates every agent's output with zod, retries, falls back, and keeps a trace. `GET /api/agents` lists the agents (`src/agents/index.ts`).
+- **Threat & Risk agent** (`src/agents/threat-risk.ts`) adds a `threats` section to every answer: legal and IP risks (trademarks, clones, game assets), security risks of the recommended tools (third-party download sites, closed-source freeware, unmaintained or unreviewed projects) and prompt injection. A request that tries to rewrite the agent's instructions is still answered, but by the offline keyword analyzer, so no model reads it.
 - **Goal analyzer** (`src/analyzer/`) uses Claude structured output, through the Anthropic API or OpenRouter, to turn free text into a goal profile. Without an API key, in `--offline` mode, or if Claude fails, a keyword analyzer takes over.
 - **Feature comparison** (`src/compare.ts`) scores each alternative: must-haves 55%, nice-to-haves 20%, vibe 10%, platform 10%, learning curve against skill level 5%. Coverage is weighted by each feature's weight (1 to 3); full support counts 1, a plug-in 0.75, partial 0.5. Same input, same ranking.
 - **Recommendations** (`src/recommend.ts`) return the top 3 picks with gaps and workarounds, official discounts for the original, and a plan for an original tool when the best pick covers under 70% of the must-haves.

@@ -5,13 +5,15 @@ import { pickProvider, type MessagesClient } from "./llm.js";
 import { findProduct, loadCatalog } from "./catalog.js";
 import { compareAlternatives } from "./compare.js";
 import { auditOutput, checkRequest, isSafeUrl, REFUSAL_PREFIX } from "./guardrails.js";
-import { buildRecommendation } from "./recommend.js";
+import { assessThreats, scanForInjection, scopeThreats } from "./agents/index.js";
+import { buildRecommendation, DISCOVERED_PREFIX } from "./recommend.js";
 import {
   Catalog as CatalogSchema,
   FeatureMatrix,
   GoalProfile,
   Recommendation,
   Refusal,
+  ThreatReport,
   type Catalog,
 } from "./schemas.js";
 
@@ -123,17 +125,22 @@ function refusal(query: string, reason: string, catalog: Catalog): Refusal {
 /** Drops any pick, discount or link that failed the output audit. */
 function sanitize(rec: Recommendation): Recommendation {
   const clean = (v: unknown) => auditOutput(v).length === 0;
+  const picks = rec.picks.filter(clean).map((p, i) => ({ ...p, rank: i + 1 }));
+  const buildPlan = rec.buildPlan && clean(rec.buildPlan) ? rec.buildPlan : null;
   return {
     ...rec,
-    picks: rec.picks.filter(clean).map((p, i) => ({ ...p, rank: i + 1 })),
+    picks,
     discounts: rec.discounts.filter(clean),
-    buildPlan: rec.buildPlan && clean(rec.buildPlan) ? rec.buildPlan : null,
+    buildPlan,
+    ...(rec.threats ? { threats: scopeThreats(rec.threats, picks.map((p) => p.name), buildPlan !== null) } : {}),
   };
 }
 
 /**
- * The agent pipeline: guard input -> analyze goal -> compare features -> recommend -> guard output.
- * Every step's output is checked against its schema before the next step runs.
+ * The Orchestrator. Guards the input, then dispatches to the sub-agents in src/agents:
+ * Goal Analyzer -> Alternative Finder -> (Feature-Gap Comparator || Threat & Risk) -> Recommendation Synthesizer,
+ * and guards the output. It owns the shared state; every agent's output is checked against its schema
+ * before the next agent sees it, and independent agents run in parallel.
  */
 export async function run(query: string, opts: RunOptions = {}): Promise<RunResult> {
   const trace: TraceEntry[] = [];
@@ -145,13 +152,16 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
     trace.push({ step: "guard-input", status: "blocked", ms: 0, detail: guard.category });
     return { result: Refusal.parse(refusal(query, guard.reason!, catalog)), trace };
   }
-  trace.push({ step: "guard-input", status: "ok", ms: 0 });
+  // Prompt injection doesn't get a refusal: the request is still answered, but no model reads it.
+  const requestThreats = scanForInjection(query);
+  trace.push({ step: "guard-input", status: "ok", ms: 0, ...(requestThreats.length ? { detail: "prompt injection: model calls disabled" } : {}) });
 
   // Anthropic API first (explicit client or key), then OpenRouter, then keywords.
-  const provider = opts.offline ? null : pickProvider(env, opts.client);
+  const provider = opts.offline || requestThreats.length ? null : pickProvider(env, opts.client);
+  const skipReason = opts.offline ? "offline mode" : requestThreats.length ? "possible prompt injection" : "no Anthropic or OpenRouter API key";
   const analyzed = await runStep(
     {
-      name: "analyze",
+      name: "goal-analyzer",
       schema: GoalProfile,
       label: provider ?? undefined,
       primary: () =>
@@ -160,51 +170,60 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
           : analyzeWithClaude(query, catalog, { client: opts.client, model: opts.model }),
       retries: 1,
       fallback: { run: () => analyzeWithKeywords(query, catalog), label: "keyword analyzer" },
-      ...(provider ? {} : { skipPrimary: opts.offline ? "offline mode" : "no Anthropic or OpenRouter API key" }),
+      ...(provider ? {} : { skipPrimary: skipReason }),
     },
     trace,
   );
 
-  // Not in the catalog: ask Claude for alternatives and keep only those whose links check out.
-  let profile = analyzed;
-  let runCatalog = catalog;
-  if (!profile.targetProductId && provider && opts.discover !== false) {
-    const found = await runStep(
-      {
-        name: "discover",
-        schema: z.object({ profile: GoalProfile, catalog: CatalogSchema }),
-        primary: async () => {
-          const d = await discoverAlternatives(
-            profile,
-            catalog,
-            { provider, client: opts.client, fetch: opts.fetch, env, model: opts.model },
-            opts.urlCheck,
-          );
-          return { profile: d.profile, catalog: { ...catalog, products: [...catalog.products, d.product] } };
-        },
-        label: provider,
-        fallback: { run: () => ({ profile, catalog }), label: "build plan only" },
-      },
-      trace,
-    );
-    profile = found.profile;
-    runCatalog = found.catalog;
-  }
-
-  const matrix = await runStep(
+  // Catalog first; when the request isn't in it, discover alternatives live and keep only those whose links check out.
+  const discover = !analyzed.targetProductId && provider && opts.discover !== false;
+  const found = await runStep(
     {
-      name: "compare",
-      schema: FeatureMatrix,
-      primary: () => compareAlternatives(profile, findProduct(runCatalog, profile.targetProductId)),
+      name: "alternative-finder",
+      schema: z.object({ profile: GoalProfile, catalog: CatalogSchema }),
+      label: discover ? `live discovery via ${provider}` : "catalog",
+      primary: async () => {
+        if (!discover) return { profile: analyzed, catalog };
+        const d = await discoverAlternatives(
+          analyzed,
+          catalog,
+          { provider, client: opts.client, fetch: opts.fetch, env, model: opts.model },
+          opts.urlCheck,
+        );
+        return { profile: d.profile, catalog: { ...catalog, products: [...catalog.products, d.product] } };
+      },
+      fallback: { run: () => ({ profile: analyzed, catalog }), label: "build plan only" },
     },
     trace,
   );
+  const profile = found.profile;
+  const product = findProduct(found.catalog, profile.targetProductId);
+
+  // These two only need the profile and the candidate pool, so they run side by side.
+  const compareTrace: TraceEntry[] = [];
+  const threatTrace: TraceEntry[] = [];
+  const [matrix, threats] = await Promise.all([
+    runStep({ name: "gap-comparator", schema: FeatureMatrix, primary: () => compareAlternatives(profile, product) }, compareTrace),
+    runStep(
+      {
+        name: "threat-risk",
+        schema: ThreatReport,
+        primary: () =>
+          assessThreats({ profile, product, discovered: product?.id.startsWith(DISCOVERED_PREFIX) ?? false, requestThreats }),
+      },
+      threatTrace,
+    ),
+  ]);
+  trace.push(...compareTrace, ...threatTrace);
 
   const recommendation = await runStep(
     {
-      name: "recommend",
+      name: "synthesizer",
       schema: Recommendation,
-      primary: () => buildRecommendation(profile, matrix, runCatalog),
+      primary: () => {
+        const rec = buildRecommendation(profile, matrix, found.catalog);
+        return { ...rec, threats: scopeThreats(threats, rec.picks.map((p) => p.name), rec.buildPlan !== null) };
+      },
     },
     trace,
   );
