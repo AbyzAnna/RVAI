@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "npm run build",
+  "outputDirectory": ".",
   "functions": {
     "api/recommend.js": { "includeFiles": "{data,dist}/**", "maxDuration": 60 },
     "api/health.js": { "includeFiles": "dist/**" },
