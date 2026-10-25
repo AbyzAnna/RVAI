@@ -10,7 +10,8 @@
     "rvai": "tsx src/cli.ts",
     "demo": "tsx src/cli.ts --offline --demo",
     "schema": "tsx scripts/write-schema.ts",
-    "web": "tsx src/server.ts"
+    "web": "tsx src/server.ts",
+    "e2e": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -35,6 +36,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
