@@ -74,3 +74,9 @@ test('unknown shapes are rejected, not rendered', () => {
   assert.throws(() => fromRecommend({}), /not an RVAI recommendation/);
   assert.throws(() => fromRecommend({ result: { status: 'ok' } }), /not an RVAI recommendation/);
 });
+
+test('chat and side-panel cards name the paid product they replace', () => {
+  const env = fromRecommend(fixture('ok'));
+  assert.ok(env.discovery.recommendations.every(m => m.project.alternative_to === 'Autodesk AutoCAD'));
+  assert.ok(env.visual.picks.every(p => p.alternativeTo === 'Autodesk AutoCAD'));
+});

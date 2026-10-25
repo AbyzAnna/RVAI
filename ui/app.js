@@ -174,7 +174,7 @@ function pickTile(p, i) {
   return el('article', { class: 'pick-card' },
     el('div', { class: 'pick-head' },
       el('span', { class: 'pick-avatar', 'aria-hidden': 'true', text: (p.name.match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase() }),
-      el('div', { class: 'pick-title' }, el('b', { text: `${i + 1}. ${p.name}` }), p.url ? el('small', { text: hostName(p.url) }) : null),
+      el('div', { class: 'pick-title' }, el('b', { text: `${i + 1}. ${p.name}` }), p.alternativeTo ? el('small', { class: 'alt-of', text: `Alternative to ${p.alternativeTo}` }) : null, p.url ? el('small', { text: hostName(p.url) }) : null),
       pctTxt ? el('span', { class: 'pick-pct', text: pctTxt, title: 'Share of your must-have features' }) : null),
     pctTxt ? el('div', { class: 'cov-bar', role: 'img', 'aria-label': `Covers ${pctTxt} of your must-haves` }, el('span', { style: `width:${pctTxt}` })) : null,
     el('div', { class: 'chip-row' },
@@ -533,8 +533,8 @@ function fitLines(m) {
 function altCard(m) {
   const a = m.project, sup = m.supported_features || [], unk = [...(m.unknown_features || []), ...(catalogView ? [] : extraUnknowns())];
   const chosen = !catalogView && state.baseId === a.id && state.route !== 'create';
-  return el('article', { class: 'project-card', style: chosen ? 'border-color:#78b4e1;background:#f6fbff' : null },
-    el('h3', { text: a.name }),
+  return el('article', { class: chosen ? 'project-card chosen' : 'project-card' },
+    el('h3', {}, a.name, a.alternative_to ? el('span', { class: 'alt-of', text: ` (alternative to ${a.alternative_to})` }) : null),
     el('div', { class: 'tags' }, [chosen ? `Selected base · ${ROUTES[state.route][0]}` : null, a.license || 'license not declared', a.pricing_type && friendly(a.pricing_type), a.verification_status && friendly(a.verification_status), m.compatibility_status && friendly(m.compatibility_status)].filter(Boolean).map(t => el('span', { class: 'tag', text: t }))),
     (a.features || []).map(f => el('div', { class: 'feature-line' }, `${sup.includes(f) ? '✓ Requested · ' : '• '}${featLabel(f)} — `, link(a.feature_evidence?.[f], 'evidence'))),
     unk.map(f => el('div', { class: 'feature-line unknown', text: `? Not evidenced in catalog (unverified): ${featLabel(f)}` })),
@@ -693,6 +693,13 @@ async function loadData() {
     // Same count as the Alternatives page: reviewed entries plus the backend's seed catalog (deduplicated by site).
     const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
     const seed = await get('catalog.json').catch(() => null);
+    // Tag each reviewed entry with the paid products it replaces, so cards read "Luanti (alternative to Minecraft)".
+    const REPLACES = { voxel_game: ['Minecraft'], cad: ['Autodesk AutoCAD', 'Fusion 360'], video_editor: ['Adobe Premiere Pro'] };
+    for (const a of alts) {
+      const names = (seed?.products || []).filter(p => p.alternatives.some(x => host(x.url) === host(a.official_url))).map(p => p.name);
+      const all = [...new Set([...names, ...(REPLACES[a.category] || [])])];
+      if (all.length) a.alternative_to = all.join(' / ');
+    }
     const sites = new Set([...alts.map(a => host(a.official_url)), ...(seed?.products || []).flatMap(p => p.alternatives.map(a => host(a.url)))]);
     $('catalog-size').textContent = String(sites.size);
   } catch (e) {

@@ -29,11 +29,11 @@ function traceSteps(trace) {
   return steps.length ? steps : null;
 }
 
-function pickCard(p, source) {
+function pickCard(p, source, target) {
   const gaps = Array.isArray(p.gaps) ? p.gaps : [];
   return {
     project: {
-      id: `rvai:${slug(p.name)}`, name: p.name, license: p.license, official_url: p.url,
+      id: `rvai:${slug(p.name)}`, name: p.name, license: p.license, official_url: p.url, alternative_to: target || undefined,
       pricing_type: p.openSource ? 'free_open_source' : 'Free, not open source',
       verification_status: source === 'discovered' ? 'Found live · links checked, not reviewed by a person' : 'From RVAI seed catalog',
       features: [], notes: isStr(p.notes) ? [p.notes] : []
@@ -84,7 +84,7 @@ function visualOf(r) {
   return {
     headline: r.target?.name ? `Free alternatives to ${r.target.name}` : r.picks.length ? 'Free alternatives' : 'Nothing free fits well yet',
     live: r.source === 'discovered',
-    picks: r.picks.map(p => ({ name: p.name, url: safeUrl(p.url), license: p.license, openSource: !!p.openSource, coverage: p.mustHaveCoverage,
+    picks: r.picks.map(p => ({ name: p.name, alternativeTo: r.target?.name || null, url: safeUrl(p.url), license: p.license, openSource: !!p.openSource, coverage: p.mustHaveCoverage,
       platformMatch: !!p.platformMatch, gaps: (p.gaps || []).slice(0, 3).map(g => ({ label: g.label, status: g.status })), notes: isStr(p.notes) ? p.notes : null })),
     discounts: discountItems(r.discounts),
     risks: items.slice(0, 4).map(t => ({ severity: t.severity, subject: t.subject, advice: t.advice })),
@@ -126,7 +126,7 @@ export function fromRecommend(data) {
     steps,
     discovery: {
       title: target ? `Alternatives to ${target}` : 'Alternatives',
-      recommendations: r.picks.map(p => pickCard(p, r.source)), excluded: [],
+      recommendations: r.picks.map(p => pickCard(p, r.source, target)), excluded: [],
       limitations: [r.attribution, live ? 'Found live by Claude: links were checked, but no person has reviewed these entries.' : null].filter(isStr)
     },
     plan: r.buildPlan ? { steps: buildPlanSteps(r.buildPlan) } : null,
