@@ -40,11 +40,26 @@ test('all element IDs in index.html are unique', () => {
 test('global nav: four links in order with exact labels, About current by default', () => {
   const nav = html.match(/<nav aria-label="Main sections">[\s\S]*?<\/nav>/)?.[0];
   assert.ok(nav, 'labelled main nav');
-  const links = [...nav.matchAll(/<a href="#(\w+)" data-route="(\w+)"([^>]*)>([^<]+)<\/a>/g)];
-  assert.deepEqual(links.map(m => [m[1], m[2], m[4]]), [['about', 'about', 'About'], ['alternatives', 'alternatives', 'Alternatives'],
+  // Link content = decorative inline SVG icon + visible text label; the accessible name is the text.
+  const links = [...nav.matchAll(/<a href="#(\w+)" data-route="(\w+)"([^>]*)>([\s\S]*?)<\/a>/g)];
+  assert.deepEqual(links.map(m => [m[1], m[2], m[4].replace(/<[^>]+>/g, '').trim()]), [['about', 'about', 'About'], ['alternatives', 'alternatives', 'Alternatives'],
     ['innovate', 'innovate', 'Innovate'], ['opensource', 'opensource', 'RVAI OpenSource']]);
   assert.deepEqual(links.filter(m => /aria-current="page"/.test(m[3])).map(m => m[1]), ['about']);
   assert.equal(count(html, /data-route="/g), 4);
+});
+
+test('icon + logo contract: local SVG sprite, distinct nav icons hidden from AT, accessible logo with text fallback', () => {
+  const nav = html.match(/<nav aria-label="Main sections">[\s\S]*?<\/nav>/)[0];
+  const icons = [...nav.matchAll(/<svg class="ico" aria-hidden="true"[^>]*><use href="#(i-[\w-]+)"\/><\/svg>/g)].map(m => m[1]);
+  assert.deepEqual(icons, ['i-about', 'i-alternatives', 'i-innovate', 'i-opensource'], 'one distinct icon per nav item');
+  for (const id of [...new Set(html.match(/<use href="#([\w-]+)"/g).map(u => u.slice('<use href="#'.length, -1)))]) {
+    assert.ok(new RegExp(`<symbol id="${id}"`).test(html), `#${id} is defined locally as a <symbol>`);
+  }
+  assert.ok(/<symbol id="rvai-mark"[^>]*><title>RVAI<\/title>/.test(html), 'logo symbol has a title');
+  const brand = html.match(/<a class="gnav-brand"[\s\S]*?<\/a>/)[0];
+  assert.ok(/<svg class="rvai-mark"[^>]*role="img"[^>]*aria-label="RVAI[^"]*"/.test(brand), 'header logo is a labelled image');
+  assert.ok(/<span class="gnav-word">RVAI<\/span>/.test(brand), 'visible wordmark fallback');
+  assert.ok(!/<(img|link|script)[^>]+(src|href)="https?:/i.test(html.replace(/<link rel="stylesheet" href="styles\.css">/, '')), 'no remote icon/image assets');
 });
 
 test('four views exist once; only About is visible in static HTML, others hidden + inert', () => {

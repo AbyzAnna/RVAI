@@ -47,6 +47,14 @@ function init() {
     n.append(...kids.flat().filter(k => k != null && k !== false));
     return n;
   };
+  // Decorative sprite icon (<use> of a local <symbol> in index.html); hidden from assistive tech.
+  const icon = name => {
+    const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'), u = document.createElementNS(NS, 'use');
+    s.setAttribute('class', 'ico'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false');
+    u.setAttribute('href', `#${name}`); s.append(u);
+    return s;
+  };
+  const CAT_ICON = { cad: 'i-cube', video_editor: 'i-film', voxel_game: 'i-blocks' };
   const safeLink = (url, text) => {
     try {
       const u = new URL(url);
@@ -151,6 +159,24 @@ function init() {
     navigate(b.dataset.try);
   }));
 
+  // Prompt cards on About: preview-demo into Innovate with the composer prefilled. Never auto-sends.
+  document.querySelectorAll('[data-prompt]').forEach(b => b.addEventListener('click', () => {
+    if (!ui.demo) activateDemo('preview');
+    navigate('innovate', false);
+    clearHandoff();
+    const box = $('message-input');
+    if ($('messages').children.length) {
+      const chip = $('handoff-chip');
+      chip.replaceChildren(el('span', { text: 'A project is already open — press “New project” first if this prompt should start fresh.' }),
+        el('button', { type: 'button', class: 'icon-button', 'aria-label': 'Dismiss note', text: '×', onclick: clearHandoff }));
+      chip.hidden = false;
+    }
+    box.value = b.dataset.prompt;
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+  }));
+
   // ---------- Innovate handoff (prefill only; never auto-sends) ----------
   function applyHandoff(h) {
     navigate('innovate', false);
@@ -185,7 +211,8 @@ function init() {
   }
   function card(item) {
     return el('article', { class: 'alt-card' },
-      el('div', { class: 'alt-card-head' }, el('h2', { text: item.name }), el('span', { class: 'tag', text: catLabel(item.category) })),
+      el('div', { class: 'alt-card-head' }, el('span', { class: 'ico-badge tone-blue' }, icon(CAT_ICON[item.category] || 'i-alternatives')),
+        el('h2', { text: item.name }), el('span', { class: 'tag', text: catLabel(item.category) })),
       el('div', { class: 'tags' }, [item.license || 'License not declared', VERIFY[item.verification_status] || words(item.verification_status || 'unverified'),
         item.last_verified ? `Sources checked ${item.last_verified}` : 'Check date unknown'].map(t => el('span', { class: 'tag', text: t }))),
       el('p', { class: 'alt-features', text: `Documented features: ${(item.features || []).map(featLabel).join(', ') || 'none recorded'}` }),
@@ -222,7 +249,35 @@ function init() {
     renderCatalog();
   }
 
+  // ---------- motion (progressive enhancement) ----------
+  // Content is visible by default. Reveal-on-scroll and hero tilt only activate when the user has not asked
+  // for reduced motion and the APIs exist; CSS also neutralizes all animation under prefers-reduced-motion.
+  function initMotion() {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!reduce || reduce.matches || !('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('js-motion');
+    const io = new IntersectionObserver(entries => entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+    }), { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(n => io.observe(n));
+    reduce.addEventListener?.('change', () => { if (reduce.matches) document.querySelectorAll('.reveal').forEach(n => n.classList.add('is-visible')); });
+    const canvas = document.querySelector('.hero-canvas'), hero = document.querySelector('.about-hero');
+    if (!canvas || !hero || !window.matchMedia('(pointer: fine)').matches) return;
+    let frame = 0;
+    hero.addEventListener('pointermove', e => {
+      if (frame || reduce.matches) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const r = hero.getBoundingClientRect();
+        canvas.style.setProperty('--tx', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+        canvas.style.setProperty('--ty', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+      });
+    });
+    hero.addEventListener('pointerleave', () => { canvas.style.setProperty('--tx', 0); canvas.style.setProperty('--ty', 0); });
+  }
+
   // ---------- boot: fresh URL (no hash) lands on About ----------
+  initMotion();
   renderCatalog();
   loadCatalog();
   if (location.hash) onHash(false); else show('about', false);
