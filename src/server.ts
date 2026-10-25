@@ -12,7 +12,7 @@ const PAGE = join(ROOT, "web", "index.html");
 const STATIC_DIRS = ["ui", "data"];
 const TYPES: Record<string, string> = {
   ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
-  ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+  ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
 };
 
 /** Resolves /ui/... or /data/... to a file inside those folders, or null (never escapes them). */
@@ -81,7 +81,8 @@ export function createServer(base: RunOptions = {}): Server {
       }
       const file = req.method === "GET" ? staticFile(url) : null;
       if (file) {
-        res.writeHead(200, { "Content-Type": `${TYPES[extname(file)] ?? "application/octet-stream"}; charset=utf-8`, "Cache-Control": "no-store" });
+        const type = TYPES[extname(file)] ?? "application/octet-stream";
+        res.writeHead(200, { "Content-Type": type.startsWith("image/png") || type.includes("icon") ? type : `${type}; charset=utf-8`, "Cache-Control": "no-store" });
         return res.end(readFileSync(file));
       }
       if (req.method === "POST" && req.url === "/api/recommend") {

@@ -1,7 +1,8 @@
 // Matrix-style rain of 0s and 1s on a canvas behind every view. Decorative only: aria-hidden, no pointer events.
 // Three depth layers (far = small, dim, slow; near = large, bright, fast). Each drop has a bright leading
-// character and a trail that fades out; characters flicker now and then. Under prefers-reduced-motion it draws
-// a single still frame and stops; it pauses while the tab is hidden and is skipped in forced-colors mode.
+// character and a trail that fades out; characters flicker now and then. With prefers-reduced-motion (often set
+// by Windows "Animation effects: off") it keeps moving, slower and sparser; the pause button stops it for anyone
+// and the choice is remembered. It pauses while the tab is hidden and is skipped in forced-colors mode.
 
 const LAYERS = [
   { size: 11, speed: [2.5, 5], alpha: 0.28, trail: [10, 22], density: 0.55 },
@@ -15,17 +16,20 @@ const FPS = 30;
 const rand = (a, b) => a + Math.random() * (b - a);
 const bit = () => (Math.random() < 0.5 ? '0' : '1');
 
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } } };
+
 export function startMatrixRain(canvas, win = window) {
   const media = q => win.matchMedia?.(q) ?? { matches: false, addEventListener() {} };
   if (media('(forced-colors: active)').matches) return null;
   const reduce = media('(prefers-reduced-motion: reduce)');
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  let w = 0, h = 0, drops = [], last = 0, raf = 0;
+  let w = 0, h = 0, drops = [], last = 0, raf = 0, paused = store.get('rvai.rain') === 'off';
+  const calm = () => (reduce.matches ? 0.4 : 1); // reduced motion: slower and sparser, still moving
 
   function makeDrop(layer, x, scatter) {
     const len = Math.round(rand(...layer.trail));
-    return { layer, x, y: scatter ? rand(-h, h) : rand(-h * 0.6, -layer.size), v: rand(...layer.speed), len,
+    return { layer, x, y: scatter ? rand(-h, h) : rand(-h * 0.6, -layer.size), v: rand(...layer.speed) * calm(), len,
       chars: Array.from({ length: len }, bit) };
   }
   function resize() {
@@ -36,7 +40,7 @@ export function startMatrixRain(canvas, win = window) {
     drops = [];
     for (const layer of LAYERS) {
       const cols = Math.floor(w / layer.size);
-      for (let c = 0; c < cols; c++) if (Math.random() < layer.density) drops.push(makeDrop(layer, c * layer.size, true));
+      for (let c = 0; c < cols; c++) if (Math.random() < layer.density * (reduce.matches ? 0.6 : 1)) drops.push(makeDrop(layer, c * layer.size, true));
     }
   }
   function draw(step) {
@@ -72,14 +76,18 @@ export function startMatrixRain(canvas, win = window) {
   }
   function play() {
     win.cancelAnimationFrame(raf); raf = 0; last = 0;
-    if (reduce.matches || win.document?.hidden) return draw(0); // one still frame
+    if (paused || win.document?.hidden) return draw(0); // one still frame
     raf = win.requestAnimationFrame(frame);
   }
   resize(); play();
   win.addEventListener('resize', () => { resize(); play(); });
   win.document?.addEventListener('visibilitychange', play);
-  reduce.addEventListener?.('change', play);
-  return { stop: () => { win.cancelAnimationFrame(raf); raf = 0; } };
+  reduce.addEventListener?.('change', () => { resize(); play(); });
+  return {
+    get paused() { return paused; },
+    setPaused(v) { paused = !!v; store.set('rvai.rain', paused ? 'off' : 'on'); play(); },
+    stop: () => { win.cancelAnimationFrame(raf); raf = 0; }
+  };
 }
 
 if (typeof document !== 'undefined') {
@@ -87,5 +95,14 @@ if (typeof document !== 'undefined') {
   canvas.id = 'matrix-rain';
   canvas.setAttribute('aria-hidden', 'true');
   document.body.prepend(canvas);
-  startMatrixRain(canvas);
+  const rain = startMatrixRain(canvas);
+  if (rain) {
+    // Small pause/play control so anyone who finds the motion distracting can stop it.
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'rain-toggle';
+    const label = () => { btn.textContent = rain.paused ? '▶ Rain' : '❚❚ Rain'; btn.setAttribute('aria-pressed', String(!rain.paused)); btn.setAttribute('aria-label', rain.paused ? 'Play background animation' : 'Pause background animation'); };
+    btn.addEventListener('click', () => { rain.setPaused(!rain.paused); label(); });
+    label();
+    document.body.append(btn);
+  }
 }
