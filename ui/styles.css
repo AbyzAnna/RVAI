@@ -648,6 +648,17 @@ html[data-route=innovate] .rain-toggle{display:none}
 .pick-title small.alt-of{color:var(--mint)}
 .project-card.chosen{border-color:var(--line-green)!important;background:rgba(74,222,128,.08)!important}
 
+/* ================= warm accent: buttons get a lime-to-amber glow over the green theme ================= */
+:root{--amber:#f2c94c;--amber-lime:#e6d36a;--amber-ink:#1c1504}
+.btn-primary,.gnav-try,.send{background:linear-gradient(135deg,var(--amber-lime),var(--amber))!important;border-color:var(--amber)!important;color:var(--amber-ink)!important}
+.btn-primary .ico,.gnav-try .ico,.send .ico{color:var(--amber-ink)!important}
+.btn-primary:hover:not(:disabled),.gnav-try:hover,.send:hover{background:linear-gradient(135deg,#f0de7a,#f7d465)!important;border-color:#f7d465!important;box-shadow:0 0 22px rgba(242,201,76,.32)!important}
+.btn-secondary:hover,.small-button:hover,.filter-chip:hover,.quick-replies button:hover{border-color:rgba(242,201,76,.55)!important;color:#fbe7a1}
+.small-button.primary{background:rgba(242,201,76,.12)!important;border:1px solid rgba(242,201,76,.45)!important;color:#fbe7a1!important}
+.small-button.primary:hover{background:rgba(242,201,76,.2)!important}
+.filter-chip[aria-pressed=true]{background:linear-gradient(135deg,var(--amber-lime),var(--amber))!important;border-color:var(--amber)!important;color:var(--amber-ink)!important}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--amber)!important;outline-offset:3px}
+
 /* ================= accessibility guardrails ================= */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
