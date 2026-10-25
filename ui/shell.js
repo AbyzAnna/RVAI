@@ -1,6 +1,6 @@
 // RVAI global shell: four hash-routed sections (About / Alternatives / Innovate / RVAI OpenSource),
 // prototype sign-up + preview-demo gate, try-Innovate-first shortcut, service chooser, third-party catalog
-// page and Innovate handoff.
+// page, Innovate handoff and decorative motion (reveal, hero tilt, binary rain).
 // UI-only: no accounts, no storage, no network beyond reading the static catalog files. Real sign-up,
 // authorization and search belong to Anna's backend. Talks to app.js only through existing element IDs.
 export const ROUTES = ['about', 'alternatives', 'innovate', 'opensource'];
@@ -71,6 +71,7 @@ function init() {
   // ---------- router ----------
   function show(route, focus) {
     current = route;
+    document.documentElement.dataset.route = route; // CSS hook: binary rain is off inside Innovate
     document.querySelectorAll('[data-view]').forEach(v => { const on = v.dataset.view === route; v.hidden = !on; v.inert = !on; });
     document.querySelectorAll('#global-nav [data-route]').forEach(a => {
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -168,7 +169,7 @@ function init() {
     if ($('messages').children.length) {
       const chip = $('handoff-chip');
       chip.replaceChildren(el('span', { text: 'A project is already open — press “New project” first if this prompt should start fresh.' }),
-        el('button', { type: 'button', class: 'icon-button', 'aria-label': 'Dismiss note', text: '×', onclick: clearHandoff }));
+        el('button', { type: 'button', class: 'icon-button', 'aria-label': 'Dismiss note', onclick: clearHandoff }, icon('i-close')));
       chip.hidden = false;
     }
     box.value = b.dataset.prompt;
@@ -187,7 +188,7 @@ function init() {
     chip.replaceChildren(
       el('span', {}, el('b', { text: 'Starting from: ' }), `${h.item.name} · third-party open-source project. Finish the sentence, then press send.`),
       inProgress ? el('small', { text: 'A project is already open — press “New project” first for a fresh start.' }) : null,
-      el('button', { type: 'button', class: 'icon-button', 'aria-label': 'Remove starting point', text: '×', onclick: clearHandoff }));
+      el('button', { type: 'button', class: 'icon-button', 'aria-label': 'Remove starting point', onclick: clearHandoff }, icon('i-close')));
     chip.hidden = false;
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
@@ -199,6 +200,8 @@ function init() {
     chip.replaceChildren();
   }
   $('new-chat').addEventListener('click', clearHandoff); // app.js still owns the reset itself
+  // app.js toggles .sidebar.open (its listener runs first); mirror that state for assistive tech.
+  $('menu-toggle').addEventListener('click', () => $('menu-toggle').setAttribute('aria-expanded', String($('innovate-sidebar').classList.contains('open'))));
 
   // ---------- Alternatives (third-party curated catalog) ----------
   const catLabel = id => ui.cats.find(c => c.id === id)?.label || words(id);
@@ -211,7 +214,7 @@ function init() {
   }
   function card(item) {
     return el('article', { class: 'alt-card' },
-      el('div', { class: 'alt-card-head' }, el('span', { class: 'ico-badge tone-blue' }, icon(CAT_ICON[item.category] || 'i-alternatives')),
+      el('div', { class: 'alt-card-head' }, el('span', { class: 'ico-badge tone-forest' }, icon(CAT_ICON[item.category] || 'i-alternatives')),
         el('h2', { text: item.name }), el('span', { class: 'tag', text: catLabel(item.category) })),
       el('div', { class: 'tags' }, [item.license || 'License not declared', VERIFY[item.verification_status] || words(item.verification_status || 'unverified'),
         item.last_verified ? `Sources checked ${item.last_verified}` : 'Check date unknown'].map(t => el('span', { class: 'tag', text: t }))),
@@ -276,7 +279,27 @@ function init() {
     hero.addEventListener('pointerleave', () => { canvas.style.setProperty('--tx', 0); canvas.style.setProperty('--ty', 0); });
   }
 
+  // Binary rain: decorative columns of 0/1 behind the page views. aria-hidden, pointer-events none, low opacity,
+  // CSS-animated (transform only, no JS loop). Not created under reduced motion; CSS also hides it if the setting
+  // changes later, and inside Innovate so the chat stays clean.
+  function initRain() {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const COLS = 26, ROWS = 56;
+    const bits = () => Array.from({ length: ROWS }, () => (Math.random() < 0.5 ? '0' : '1')).join('\n');
+    const rain = el('div', { class: 'binary-rain', 'aria-hidden': 'true' });
+    for (let i = 0; i < COLS; i++) {
+      const b = bits(), col = el('span', { text: `${b}\n${b}` }); // doubled so the -50% → 0 loop is seamless
+      col.style.setProperty('--x', `${((i + Math.random() * 0.6) / COLS * 100).toFixed(2)}%`);
+      col.style.setProperty('--dur', `${(22 + Math.random() * 26).toFixed(1)}s`);
+      col.style.setProperty('--delay', `${(-Math.random() * 40).toFixed(1)}s`);
+      col.style.setProperty('--o', (0.35 + Math.random() * 0.65).toFixed(2));
+      rain.append(col);
+    }
+    document.body.prepend(rain);
+  }
+
   // ---------- boot: fresh URL (no hash) lands on About ----------
+  initRain();
   initMotion();
   renderCatalog();
   loadCatalog();
