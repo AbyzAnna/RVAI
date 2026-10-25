@@ -25,7 +25,7 @@ export function startMatrixRain(canvas, win = window) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   let w = 0, h = 0, drops = [], last = 0, raf = 0, paused = store.get('rvai.rain') === 'off';
-  const calm = () => (reduce.matches ? 0.4 : 1); // reduced motion: slower and sparser, still moving
+  const calm = () => (reduce.matches ? 0.7 : 1); // reduced motion: a bit slower and sparser, still clearly falling
 
   function makeDrop(layer, x, scatter) {
     const len = Math.round(rand(...layer.trail));
@@ -40,7 +40,7 @@ export function startMatrixRain(canvas, win = window) {
     drops = [];
     for (const layer of LAYERS) {
       const cols = Math.floor(w / layer.size);
-      for (let c = 0; c < cols; c++) if (Math.random() < layer.density * (reduce.matches ? 0.6 : 1)) drops.push(makeDrop(layer, c * layer.size, true));
+      for (let c = 0; c < cols; c++) if (Math.random() < layer.density * (reduce.matches ? 0.8 : 1)) drops.push(makeDrop(layer, c * layer.size, true));
     }
   }
   function draw(step) {
