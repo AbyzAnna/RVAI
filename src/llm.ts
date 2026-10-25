@@ -8,6 +8,18 @@ export const ANTHROPIC_DEFAULT_MODEL = "claude-opus-5-5";
 export const OPENROUTER_DEFAULT_MODEL = "anthropic/claude-opus-5.5";
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+/**
+ * The model each agent uses when no model is forced. Reading a request is a short structured task, so the
+ * Goal Analyzer uses a fast model; naming real, current open-source projects is where the strongest model
+ * pays off, so Alternative Finder's live discovery uses it. On OpenRouter the later entries are fallbacks
+ * it switches to when the first is down.
+ */
+export const AGENT_MODELS = {
+  analyzer: { anthropic: "claude-sonnet-5-5", openrouter: ["anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "anthropic/claude-haiku-5.5"] },
+  discovery: { anthropic: "claude-opus-5-5", openrouter: ["anthropic/claude-opus-5.5", "anthropic/claude-sonnet-5.5"] },
+} as const;
+export type AgentRole = keyof typeof AGENT_MODELS;
+
 /** The slice of the SDK client RVAI uses, so tests can pass a fake. */
 export type MessagesClient = Pick<Anthropic, "messages">;
 
@@ -20,6 +32,8 @@ export interface LlmOptions {
   model?: string;
   maxTokens?: number;
   timeoutMs?: number;
+  /** Picks the agent's model from AGENT_MODELS when `model` isn't set. */
+  role?: AgentRole;
 }
 
 export function hasApiCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -48,6 +62,12 @@ const Completion = z.object({
     .min(1),
 });
 
+function openRouterModels(opts: LlmOptions): { model: string; models?: string[] } {
+  if (opts.model || !opts.role) return { model: opts.model ?? OPENROUTER_DEFAULT_MODEL };
+  const [model, ...fallbacks] = AGENT_MODELS[opts.role].openrouter;
+  return { model, models: [model, ...fallbacks] };
+}
+
 /** One structured call to Claude: returns output that matches the schema, or throws. */
 export async function completeJson<S extends z.ZodType>(
   schema: S,
@@ -61,7 +81,7 @@ export async function completeJson<S extends z.ZodType>(
   if (opts.provider === "anthropic") {
     const client = opts.client ?? new Anthropic();
     const response = await client.messages.parse({
-      model: opts.model ?? ANTHROPIC_DEFAULT_MODEL,
+      model: opts.model ?? (opts.role ? AGENT_MODELS[opts.role].anthropic : ANTHROPIC_DEFAULT_MODEL),
       max_tokens: maxTokens,
       output_config: { effort: "low", format: zodOutputFormat(schema) },
       system,
@@ -83,7 +103,7 @@ export async function completeJson<S extends z.ZodType>(
       "X-Title": "RVAI",
     },
     body: JSON.stringify({
-      model: opts.model ?? OPENROUTER_DEFAULT_MODEL,
+      ...openRouterModels(opts),
       max_tokens: maxTokens,
       messages: [
         { role: "system", content: system },
@@ -92,6 +112,8 @@ export async function completeJson<S extends z.ZodType>(
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: z.toJSONSchema(schema) } },
       // Only route to providers that honor the schema.
       provider: { require_parameters: true },
+      // Same as the Anthropic path: these are short structured answers, so long thinking only adds wait.
+      reasoning: { effort: "low" },
     }),
     signal: AbortSignal.timeout(120_000),
   });

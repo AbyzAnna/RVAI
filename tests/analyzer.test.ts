@@ -60,6 +60,8 @@ describe("Claude analyzer", () => {
     skillLevel: "intermediate",
     vibe: ["Professional"],
     openSourceOnly: false,
+    clarifyingQuestion: null,
+    answerOptions: [],
   };
 
   it("maps structured output to a profile and drops feature ids not in the catalog", async () => {
@@ -70,7 +72,7 @@ describe("Claude analyzer", () => {
     expect(p.niceToHaves).toEqual(["brushes"]);
     expect(p.vibe).toEqual(["professional"]);
     const request = (client.messages.parse as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(request.model).toBe("claude-opus-5-5");
+    expect(request.model).toBe("claude-sonnet-5-5");
     expect(request.output_config.format).toBeDefined();
     expect(request.system).toContain("Never help decompile");
   });

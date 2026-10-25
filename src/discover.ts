@@ -24,6 +24,7 @@ const Discovery = z.strictObject({
       supports: z.array(z.strictObject({ featureId: z.string(), support: Support })),
       vibe: z.array(z.string()),
       notes: z.string(),
+      workarounds: z.array(z.strictObject({ featureId: z.string(), tip: z.string() })),
     }),
   ),
 });
@@ -34,7 +35,8 @@ If you can tell which paid product (or kind of product) they mean, set found to 
 - productName and vendor of the paid product, and its category;
 - 4 to 7 features that matter most for it: id (lowercase-with-dashes), short label, weight 3 for core, 2 important, 1 extra;
 - mustHaves: ids of the features the person asked for or clearly needs (the core ones if they name none); niceToHaves: the rest;
-- up to 4 free alternatives that really exist today and are free of charge to use, with the official https website (never a download mirror or app store listing), the SPDX license id ("Freeware" if free but not open source), openSource, platforms, learningCurve, which features each supports (full, partial or plugin; leave out unsupported ones), a few vibe adjectives, and a one-sentence note.
+- up to 4 free alternatives that really exist today and are free of charge to use, with the official https website (never a download mirror or app store listing), the SPDX license id ("Freeware" if free but not open source), openSource, platforms, learningCurve, which features each supports (full, partial or plugin; leave out unsupported ones), a few vibe adjectives, a one-sentence note, and workarounds: for each feature it supports only partly or lacks, one practical tip naming a real free plug-in, add-on, companion tool or setting that closes the gap (leave a feature out when you know no real fix).
+Prefer open-source projects. Only list a free-to-play title with in-app purchases or ads when nothing open source fits, and say so in its note. Rank the closest match to what the person asked for first.
 Only list projects you are confident exist, with their real official site. If you can't tell what they want, set found to false and leave the lists empty.
 
 ${SYSTEM_RULES}`;
@@ -86,6 +88,9 @@ export async function toDiscoveredProduct(d: Discovery, profile: GoalProfile, ca
         features: Object.fromEntries(a.supports.filter((s) => ids.has(slug(s.featureId))).map((s) => [slug(s.featureId), s.support])),
         vibe: a.vibe.map((v) => v.toLowerCase()),
         notes: a.notes || undefined,
+        workarounds: a.workarounds.length
+          ? Object.fromEntries(a.workarounds.filter((w) => ids.has(slug(w.featureId)) && w.tip).map((w) => [slug(w.featureId), w.tip]))
+          : undefined,
       });
       if (!candidate.success) return void dropped.push(`${a.name}: incomplete entry`);
       if (!isSafeUrl(a.url)) return void dropped.push(`${a.name}: unsafe link`);
@@ -128,6 +133,6 @@ export async function discoverAlternatives(
   llm: LlmOptions,
   urlCheck: UrlCheck = checkUrlLoads,
 ): Promise<DiscoveryResult> {
-  const d = await completeJson(Discovery, "discovery", SYSTEM, profile.query, { ...llm, maxTokens: 6000 });
+  const d = await completeJson(Discovery, "discovery", SYSTEM, profile.query, { role: "discovery", ...llm, maxTokens: 6000 });
   return toDiscoveredProduct(d, profile, catalog, urlCheck);
 }

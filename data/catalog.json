@@ -1096,7 +1096,8 @@
             "precise"
           ],
           "workarounds": {
-            "3d-modeling": "Use FreeCAD for 3D parts and LibreCAD for 2D sheets."
+            "3d-modeling": "Use FreeCAD for 3D parts and LibreCAD for 2D sheets.",
+            "dwg-support": "LibreCAD opens older DWG files; for newer ones, convert DWG to DXF with the free ODA File Converter (freeware), then open the DXF."
           }
         }
       ],
