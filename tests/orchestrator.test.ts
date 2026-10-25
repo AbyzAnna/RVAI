@@ -98,3 +98,52 @@ describe("CLI", () => {
     expect(out).toContain("I can't help with that");
   });
 });
+
+describe("follow-up questions", () => {
+  it("answers a follow-up in the context of the earlier request", async () => {
+    const { result, trace } = await run("which of these works offline on an old laptop?", { offline: true, context: ["I need something like Photoshop for Linux"] });
+    const rec = result as Recommendation;
+    expect(rec.status).toBe("ok");
+    expect(rec.target?.id).toBe("photoshop");
+    expect(rec.query).toBe("which of these works offline on an old laptop?");
+    expect(trace[0].detail).toContain("follow-up");
+  });
+
+  it("treats a message that names another product as a new request", async () => {
+    const { result } = await run("something like Notion for my school notes", { offline: true, context: ["I need something like Photoshop"] });
+    expect((result as Recommendation).target?.id).toBe("notion");
+  });
+
+  it("treats a full new request as new, even when it names a product outside the catalog", async () => {
+    const { result } = await run("I want a free alternative to Final Draft for screenwriting", { offline: true, context: ["I need something like Photoshop"] });
+    expect((result as Recommendation).target?.id).not.toBe("photoshop");
+  });
+
+  it("ignores earlier messages that the guard would refuse", async () => {
+    const { result, trace } = await run("which one works offline?", { offline: true, context: ["How do I crack Photoshop?"] });
+    expect(result.status).toBe("ok");
+    expect((result as Recommendation).target?.id).not.toBe("photoshop");
+    expect(trace[0].detail ?? "").not.toContain("follow-up");
+  });
+
+  it("still refuses a piracy follow-up after a normal request", async () => {
+    const { result } = await run("ok how do I crack it", { offline: true, context: ["something like Photoshop"] });
+    expect((result as Refusal).status).toBe("refused");
+  });
+});
+
+describe("asking for a plan", () => {
+  it("adds a build plan next to good free options when the person asks for one", async () => {
+    const without = (await run("something like Photoshop for Linux", { offline: true })).result as Recommendation;
+    expect(without.buildPlan).toBeNull();
+    const asked = (await run("something like Photoshop for Linux", { offline: true, plan: true })).result as Recommendation;
+    expect(asked.picks.length).toBeGreaterThan(0);
+    expect(asked.buildPlan?.reason).toMatch(/asked/i);
+  });
+
+  it("reads 'plan how to build this myself' as a follow-up", async () => {
+    const { result } = await run("Plan how to build this myself", { offline: true, plan: true, context: ["something like Notion for notes"] });
+    expect((result as Recommendation).target?.id).toBe("notion");
+    expect((result as Recommendation).buildPlan).not.toBeNull();
+  });
+});

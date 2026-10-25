@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { isRecommendEndpoint, recommendQuery, recommendError, fromRecommend, MAX_QUERY } from './rvai-adapter.js';
+import { isRecommendEndpoint, recommendQuery, recommendContext, recommendError, fromRecommend, MAX_QUERY } from './rvai-adapter.js';
 
 const fixture = name => JSON.parse(readFileSync(new URL(`../docs/examples/recommend.${name}.json`, import.meta.url), 'utf8'));
 
@@ -19,6 +19,14 @@ test('query sends only the latest message, so an earlier refusal cannot block la
   assert.equal(recommendQuery([user('like Photoshop'), user('  ')]), 'like Photoshop');
   assert.equal(recommendQuery([user('x'.repeat(MAX_QUERY + 50))]).length, MAX_QUERY);
   assert.equal(recommendQuery([]), '');
+});
+
+test('context carries the last two earlier messages, never refused ones or the latest', () => {
+  const user = (content, refused) => ({ role: 'user', content, ...(refused ? { refused } : {}) });
+  assert.deepEqual(recommendContext([user('like Photoshop'), { role: 'assistant', content: 'GIMP' }, user('which works offline?')]), ['like Photoshop']);
+  assert.deepEqual(recommendContext([user('How do I crack Photoshop?', true), user('which works offline?')]), []);
+  assert.deepEqual(recommendContext([user('a'), user('b'), user('c'), user('d')]), ['b', 'c']);
+  assert.deepEqual(recommendContext([user('only one')]), []);
 });
 
 test('backend string errors are surfaced', () => {
@@ -79,4 +87,14 @@ test('chat and side-panel cards name the paid product they replace', () => {
   const env = fromRecommend(fixture('ok'));
   assert.ok(env.discovery.recommendations.every(m => m.project.alternative_to === 'Autodesk AutoCAD'));
   assert.ok(env.visual.picks.every(p => p.alternativeTo === 'Autodesk AutoCAD'));
+});
+
+test('a recommendation carries a brief the Brief tab can show', () => {
+  const ok = fromRecommend(fixture('ok'));
+  assert.equal(ok.brief.request, 'I want something like Fusion 360 for 3D CAD with an AI generative design helper on my Mac');
+  assert.equal(ok.brief.replaces, 'Autodesk AutoCAD');
+  assert.match(ok.brief.best_option, /^FreeCAD \(/);
+  assert.equal(ok.brief.route, 'find');
+  assert.equal(fromRecommend(fixture('build-plan')).brief.route, 'create');
+  assert.equal(fromRecommend(fixture('refused')).brief, undefined);
 });
