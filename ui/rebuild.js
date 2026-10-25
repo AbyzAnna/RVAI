@@ -136,7 +136,9 @@ $('build-btn').addEventListener('click', async () => {
   if (!body.features.length) { $('build-err').textContent = 'Pick at least one feature or add a mod.'; return; }
   $('step-result').hidden = true; $('step-build').hidden = false;
   const modelLabel = models.find(m => m.id === state.model)?.label || state.model;
-  $('build-sub').textContent = `${modelLabel} is writing one original file with ${body.features.length} features. This can take a minute or two.`;
+  const started = Date.now(), sub = `${modelLabel} is writing one original file with ${body.features.length} features. This can take a few minutes.`;
+  $('build-sub').textContent = sub;
+  const timer = setInterval(() => { $('build-sub').textContent = `${sub} ${Math.round((Date.now() - started) / 1000)}s so far.`; }, 1000);
   agentCards($('build-agents'), BUILD_AGENTS); setAgent('namer', 'working');
   setTimeout(() => { if ($('agent-namer').dataset.st === 'working') { setAgent('namer', 'ok'); setAgent('app-builder', 'working'); } }, 2500);
   $('step-build').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -149,7 +151,7 @@ $('build-btn').addEventListener('click', async () => {
     showResult(result);
   } catch (err) {
     setAgent('app-builder', 'failed'); $('build-err').textContent = `Build failed: ${err.message}`;
-  } finally { $('build-btn').disabled = false; }
+  } finally { clearInterval(timer); $('build-btn').disabled = false; }
 });
 
 // The preview runs without same-origin access, where localStorage throws; give it an in-memory one.

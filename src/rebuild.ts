@@ -33,6 +33,8 @@ export interface RebuildOptions {
   client?: MessagesClient;
   offline?: boolean;
   urlCheck?: UrlCheck;
+  /** How long the build may spend on model calls before using the template (default 250s, under Vercel's 300s). */
+  budgetMs?: number;
 }
 
 /** OpenRouter first here, because it is what lets the person choose a model; then the Anthropic API. */
@@ -414,6 +416,7 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
   const { system, user } = builderPrompt({ ...req, target, features }, appName);
   const template = () => (format === "html" ? htmlTemplate : pythonTemplate)({ appName, target, summary: clip(req.summary, 200), features: features.map(({ label, description }) => ({ label, description })) });
   let source: BuiltFile["source"] = "ai";
+  const deadline = Date.now() + (opts.budgetMs ?? 250_000);
   const content = await runStep(
     {
       name: "app-builder",
@@ -421,7 +424,10 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
       label: p ? model : undefined,
       retries: 1,
       primary: async () => {
-        const file = extractFile(await completeText(system, user, { ...llm(p!, model, opts, 16000), timeoutMs: 140_000 }), format);
+        // Stay inside the hosting time limit: a retry only runs if there is still room for it.
+        const left = deadline - Date.now();
+        if (left < 45_000) throw new Error("out of time for another try");
+        const file = extractFile(await completeText(system, user, { ...llm(p!, model, opts, 16000), timeoutMs: Math.min(180_000, left) }), format);
         const problems = checkFile(file, format);
         if (problems.length) throw new Error(`file check: ${problems.join(", ")}`);
         return file;

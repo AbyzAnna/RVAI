@@ -123,6 +123,14 @@ describe("rebuild build", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  it("uses the template instead of starting a model call it has no time left for", async () => {
+    const fetch = fakeOpenRouter(RESEARCH, APP);
+    const { result, trace } = await buildApp(BUILD, { env, fetch, budgetMs: 0 });
+    expect((result as BuiltFile).source).toBe("template");
+    expect(trace.at(-1)?.detail).toMatch(/out of time/);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("builds a standard-library Python file for the desktop option, with Linux steps", async () => {
     const { result } = await buildApp({ ...BUILD, system: { os: "linux", arch: "x64", format: "python" } }, { env: {} });
     const f = result as BuiltFile;
