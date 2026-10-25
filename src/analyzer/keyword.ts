@@ -63,6 +63,9 @@ export function detectProduct(catalog: Catalog, query: string): Product | undefi
   return top && top.hits >= 2 && !tie ? top.product : undefined;
 }
 
+export const CLARIFY_QUESTION = "What do you want to do with it? Tell me the job, or a paid app or game you'd like a free version of.";
+export const CLARIFY_OPTIONS = ["Edit photos or design", "Write documents and homework", "Make music or videos", "Play or make a game"];
+
 /** Offline goal analyzer: deterministic keyword matching against the catalog. */
 export function analyzeWithKeywords(query: string, catalog: Catalog): GoalProfile {
   const product = detectProduct(catalog, query);
@@ -83,6 +86,8 @@ export function analyzeWithKeywords(query: string, catalog: Catalog): GoalProfil
       : "intermediate";
 
   const labels = new Map(product?.features.map((f) => [f.id, f.label]) ?? []);
+  // A few words that name no product or task ("app", "help pls") can't be acted on, so ask instead of guessing.
+  const vague = !product && query.split(/\s+/).filter(Boolean).length <= 4;
   return {
     query,
     targetProductId: product?.id ?? null,
@@ -95,5 +100,6 @@ export function analyzeWithKeywords(query: string, catalog: Catalog): GoalProfil
     vibe,
     openSourceOnly: /\b(open[- ]source only|only open[- ]source|foss only|only foss|libre only|no freeware)\b/i.test(query),
     source: "keyword",
+    clarify: vague ? { question: CLARIFY_QUESTION, options: CLARIFY_OPTIONS } : null,
   };
 }

@@ -127,6 +127,16 @@ export function fromRecommend(data) {
     };
   }
   if (r?.status !== 'ok' || !Array.isArray(r.picks)) throw new Error('response was not an RVAI recommendation or refusal');
+  // A vague request comes back as one question with a few example answers instead of picks.
+  if (isStr(r.clarify?.question)) {
+    const options = (Array.isArray(r.clarify.options) ? r.clarify.options : []).filter(isStr);
+    return {
+      stage: 'clarifying', route: null, steps,
+      assistant_message: [r.clarify.question, options.length ? options.map(o => `• ${o}`).join('\n') : null].filter(Boolean).join('\n'),
+      clarifying_question: { prompt: r.clarify.question, options },
+      discovery: null, plan: null
+    };
+  }
   const live = r.source === 'discovered', target = r.target?.name;
   const discounts = discountLines(r.discounts);
   const lines = [

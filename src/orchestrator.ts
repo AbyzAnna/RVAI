@@ -126,6 +126,9 @@ function refusal(query: string, reason: string, catalog: Catalog): Refusal {
   };
 }
 
+/** The echoed request already passed the input guard, which knows "my laptop is about to crack" is harmless. */
+const withoutQuery = (rec: Recommendation) => ({ ...rec, query: "" });
+
 /** Drops any pick, discount or link that failed the output audit. */
 function sanitize(rec: Recommendation): Recommendation {
   const clean = (v: unknown) => auditOutput(v).length === 0;
@@ -205,7 +208,8 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
   );
 
   // Catalog first; when the request isn't in it, discover alternatives live and keep only those whose links check out.
-  const discover = !analyzed.targetProductId && provider && opts.discover !== false;
+  // A vague request gets a question back, so there's nothing to look up yet.
+  const discover = !analyzed.targetProductId && !analyzed.clarify && provider && opts.discover !== false;
   const found = await runStep(
     {
       name: "alternative-finder",
@@ -251,6 +255,7 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
       schema: Recommendation,
       primary: () => {
         const rec = buildRecommendation(profile, matrix, found.catalog, { plan: opts.plan });
+        if (profile.clarify && !rec.target) return { ...rec, query, buildPlan: null, clarify: profile.clarify, threats: scopeThreats({ ...threats, items: threats.items.filter((t) => t.kind === "prompt-injection") }, [], false) };
         return { ...rec, query, threats: scopeThreats(threats, rec.picks.map((p) => p.name), rec.buildPlan !== null) };
       },
     },
@@ -262,7 +267,7 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
       name: "guard-output",
       schema: Recommendation,
       primary: () => {
-        const problems = auditOutput(recommendation);
+        const problems = auditOutput(withoutQuery(recommendation));
         if (problems.length) throw new Error(problems.join(", "));
         return recommendation;
       },
@@ -270,7 +275,7 @@ export async function run(query: string, opts: RunOptions = {}): Promise<RunResu
         label: "sanitized output",
         run: () => {
           const cleaned = sanitize(recommendation);
-          const left = auditOutput(cleaned);
+          const left = auditOutput(withoutQuery(cleaned));
           if (left.length) throw new Error(left.join(", "));
           return cleaned;
         },

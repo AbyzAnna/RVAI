@@ -22,13 +22,13 @@ const discovery = {
   alternatives: [
     { name: "Good PDF", url: "https://goodpdf.example", license: "MIT", openSource: true, platforms: ["windows"], learningCurve: "easy",
       supports: [{ featureId: "edit-text", support: "full" }, { featureId: "sign", support: "partial" }, { featureId: "bogus", support: "full" }],
-      vibe: ["Simple"], notes: "A fine tool." },
+      vibe: ["Simple"], notes: "A fine tool.", workarounds: [{ featureId: "sign", tip: "Use the free signing add-on." }, { featureId: "bogus", tip: "dropped" }] },
     { name: "Dead Link PDF", url: "https://dead.example", license: "MIT", openSource: true, platforms: ["windows"], learningCurve: "easy",
-      supports: [], vibe: [], notes: "" },
+      supports: [], vibe: [], notes: "", workarounds: [] },
     { name: "Pirate PDF", url: "https://pdf-crack.example", license: "Freeware", openSource: false, platforms: ["windows"], learningCurve: "easy",
-      supports: [], vibe: [], notes: "" },
+      supports: [], vibe: [], notes: "", workarounds: [] },
     { name: "Plain HTTP PDF", url: "http://plain.example", license: "MIT", openSource: true, platforms: ["windows"], learningCurve: "easy",
-      supports: [], vibe: [], notes: "" },
+      supports: [], vibe: [], notes: "", workarounds: [] },
   ],
 };
 
@@ -55,6 +55,7 @@ describe("live discovery", () => {
     expect(d.product.features.map((f) => [f.id, f.weight])).toEqual([["edit-text", 3], ["sign", 3], ["ocr", 3]]);
     expect(d.product.alternatives.map((a) => a.name)).toEqual(["Good PDF"]);
     expect(d.product.alternatives[0].features).toEqual({ "edit-text": "full", sign: "partial" });
+    expect(d.product.alternatives[0].workarounds).toEqual({ sign: "Use the free signing add-on." });
     expect(d.dropped.join(" ")).toMatch(/Dead Link PDF: link did not load/);
     expect(d.dropped.join(" ")).toMatch(/Pirate PDF: unsafe link/);
     expect(d.dropped.join(" ")).toMatch(/Plain HTTP PDF: incomplete entry/);
@@ -67,7 +68,7 @@ describe("live discovery", () => {
   });
 
   it("runs between analyze and compare for requests outside the catalog, and labels the result", async () => {
-    const goal = { targetProductId: null, category: "office", tasks: [], mustHaves: [], niceToHaves: [], platforms: ["windows"], skillLevel: "beginner", vibe: [], openSourceOnly: false };
+    const goal = { targetProductId: null, category: "office", tasks: [], mustHaves: [], niceToHaves: [], platforms: ["windows"], skillLevel: "beginner", vibe: [], openSourceOnly: false, clarifyingQuestion: null, answerOptions: [] };
     const client = fakeClient([
       { stop_reason: "end_turn", parsed_output: goal },
       { stop_reason: "end_turn", parsed_output: discovery },
@@ -77,11 +78,12 @@ describe("live discovery", () => {
     const rec = result as Recommendation;
     expect(rec.source).toBe("discovered");
     expect(rec.picks[0].name).toBe("Good PDF");
+    expect(rec.picks[0].gaps.find((g) => g.featureId === "sign")?.workaround).toBe("Use the free signing add-on.");
     expect(rec.attribution).toMatch(/not reviewed by a person/);
   });
 
   it("falls back to a build plan when discovery fails", async () => {
-    const goal = { targetProductId: null, category: "other", tasks: ["x"], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false };
+    const goal = { targetProductId: null, category: "other", tasks: ["x"], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false, clarifyingQuestion: null, answerOptions: [] };
     const client = fakeClient([{ stop_reason: "end_turn", parsed_output: goal }, new Error("overloaded")]);
     const { result, trace } = await run("something nobody has heard of", { client, urlCheck });
     expect(trace[2]).toMatchObject({ step: "alternative-finder", status: "fallback" });
@@ -92,7 +94,7 @@ describe("live discovery", () => {
   it("is skipped offline and when turned off", async () => {
     const offline = await run("edit PDFs like Acrobat", { offline: true });
     expect(offline.trace[2]).toMatchObject({ step: "alternative-finder", detail: "catalog" });
-    const client = fakeClient([{ stop_reason: "end_turn", parsed_output: { targetProductId: null, category: "other", tasks: [], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false } }]);
+    const client = fakeClient([{ stop_reason: "end_turn", parsed_output: { targetProductId: null, category: "other", tasks: [], mustHaves: [], niceToHaves: [], platforms: [], skillLevel: "beginner", vibe: [], openSourceOnly: false, clarifyingQuestion: null, answerOptions: [] } }]);
     const off = await run("edit PDFs like Acrobat", { client, discover: false });
     expect(off.trace[2]).toMatchObject({ step: "alternative-finder", detail: "catalog" });
   });

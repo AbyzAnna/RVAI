@@ -21,6 +21,16 @@ test('query sends only the latest message, so an earlier refusal cannot block la
   assert.equal(recommendQuery([]), '');
 });
 
+test('a vague request becomes a clarifying question with tap-able answers, not an empty list of picks', () => {
+  const r = fromRecommend({ result: { status: 'ok', query: 'app', source: 'catalog', target: null, picks: [], discounts: [], buildPlan: null, attribution: 'x',
+    clarify: { question: 'What do you want to do with it?', options: ['Edit photos', 'Write homework'] } }, trace: [] });
+  assert.equal(r.stage, 'clarifying');
+  assert.equal(r.clarifying_question.prompt, 'What do you want to do with it?');
+  assert.deepEqual(r.clarifying_question.options, ['Edit photos', 'Write homework']);
+  assert.match(r.assistant_message, /• Write homework/);
+  assert.equal(r.discovery, null);
+});
+
 test('context carries the last two earlier messages, never refused ones or the latest', () => {
   const user = (content, refused) => ({ role: 'user', content, ...(refused ? { refused } : {}) });
   assert.deepEqual(recommendContext([user('like Photoshop'), { role: 'assistant', content: 'GIMP' }, user('which works offline?')]), ['like Photoshop']);

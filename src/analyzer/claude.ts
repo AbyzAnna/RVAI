@@ -10,6 +10,6 @@ export async function analyzeWithClaude(
   catalog: Catalog,
   opts: { client?: MessagesClient; model?: string } = {},
 ): Promise<GoalProfile> {
-  const parsed = await completeJson(LlmGoal, "goal_profile", systemPrompt(catalog), query, { provider: "anthropic", ...opts });
+  const parsed = await completeJson(LlmGoal, "goal_profile", systemPrompt(catalog), query, { provider: "anthropic", role: "analyzer", ...opts });
   return toProfile(query, parsed, catalog, "claude");
 }

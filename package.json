@@ -11,6 +11,7 @@
     "demo": "tsx src/cli.ts --offline --demo",
     "schema": "tsx scripts/write-schema.ts",
     "web": "tsx src/server.ts",
+    "eval": "tsx scripts/eval.ts",
     "e2e": "playwright test"
   },
   "repository": {

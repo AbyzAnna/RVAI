@@ -68,6 +68,10 @@ export type Catalog = z.infer<typeof Catalog>;
 
 // ---------- Goal analysis ----------
 
+// One short question for a request too vague to act on, with a few example answers to tap.
+export const Clarify = z.object({ question: z.string().min(1), options: z.array(z.string()) });
+export type Clarify = z.infer<typeof Clarify>;
+
 export const GoalProfile = z.object({
   query: z.string(),
   targetProductId: z.string().nullable(),
@@ -80,6 +84,8 @@ export const GoalProfile = z.object({
   vibe: z.array(z.string()),
   openSourceOnly: z.boolean(),
   source: z.enum(["claude", "openrouter", "keyword"]),
+  // Set only when the request doesn't say what kind of software or job it is about.
+  clarify: Clarify.nullable().optional(),
 });
 export type GoalProfile = z.infer<typeof GoalProfile>;
 
@@ -179,6 +185,8 @@ export const Recommendation = z.object({
   buildPlan: BuildPlan.nullable(),
   // Added by the Threat & Risk agent; optional so older callers can still build a Recommendation.
   threats: ThreatReport.optional(),
+  // When set, the answer is a question back to the person instead of picks.
+  clarify: Clarify.nullable().optional(),
   attribution: z.string(),
 });
 export type Recommendation = z.infer<typeof Recommendation>;

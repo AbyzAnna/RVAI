@@ -93,6 +93,8 @@ npm test
 
 The tests cover the catalog (including the MVP bar: for every seed product the top pick covers at least 70% of its core must-haves, and every link is an official https link), the guardrails, both analyzers (Claude through a fake client), the scoring, the recommendations, the orchestrator's retry and fallback paths, and the CLI.
 
+`npm run eval` checks answer quality live: it sends 21 real requests (catalog matches, apps outside the catalog, a piracy request, vague requests that should get a question back) through the full agent and scores the target, the must-haves, the top pick, platform fit, gaps with workarounds and refusals. It needs an API key in `.env`; add `--offline` to score the keyword analyzer.
+
 ## Catalog format
 
 A catalog is a JSON file shaped `{ "products": [...] }`, described by [catalog.schema.json](catalog.schema.json). RVAI uses `data/catalog.json` unless you pass `--catalog=file.json` or set `RVAI_CATALOG`. See [examples/catalog.example.json](examples/catalog.example.json) for a small one.

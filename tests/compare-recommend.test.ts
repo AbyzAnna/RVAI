@@ -55,10 +55,12 @@ describe("feature comparison", () => {
     expect(compareAlternatives(p, photoshop)).toEqual(compareAlternatives(p, photoshop));
   });
 
-  it("treats browser apps as available on desktop platforms", () => {
+  it("treats browser apps as available wherever there is a browser, tablets included", () => {
     const photopea = photoshop.alternatives.find((a) => a.id === "photopea")!;
+    const gimp = photoshop.alternatives.find((a) => a.id === "gimp")!;
     expect(scoreAlternative(profile({ platforms: ["linux"] }), photopea).platformMatch).toBe(true);
-    expect(scoreAlternative(profile({ platforms: ["ios"] }), photopea).platformMatch).toBe(false);
+    expect(scoreAlternative(profile({ platforms: ["ios"] }), photopea).platformMatch).toBe(true);
+    expect(scoreAlternative(profile({ platforms: ["ios"] }), gimp).platformMatch).toBe(false);
   });
 
   it("drops freeware when the person wants open source only", () => {
@@ -95,9 +97,19 @@ describe("recommendations", () => {
   });
 
   it("adds a plan when no alternative runs on the person's platform", () => {
-    const p = profile({ mustHaves: ["layers", "masks"], platforms: ["ios"] });
-    const rec = buildRecommendation(p, compareAlternatives(p, photoshop), catalog);
+    const lightroom = catalog.products.find((x) => x.id === "lightroom")!;
+    const p = profile({ targetProductId: "lightroom", mustHaves: ["raw-develop"], platforms: ["ios"] });
+    const rec = buildRecommendation(p, compareAlternatives(p, lightroom), catalog);
     expect(rec.buildPlan?.reason).toMatch(/run on ios/);
+  });
+
+  it("explains each pick in plain words: what it has, what is partial or missing, and where it runs", () => {
+    const p = profile({ mustHaves: ["layers", "masks", "raw-editing"], platforms: ["linux"], skillLevel: "beginner" });
+    const gimp = buildRecommendation(p, compareAlternatives(p, photoshop), catalog).picks.find((x) => x.name === "GIMP")!;
+    expect(gimp.why).toMatch(/^GIMP has layers .*masks/i);
+    expect(gimp.why).toMatch(/runs on Linux/);
+    expect(gimp.why).toMatch(/raw .* only partly there/i);
+    expect(gimp.why).toMatch(/takes a while to learn/);
   });
 
   it("skips the plan when coverage is good enough", () => {

@@ -41,6 +41,8 @@ describe("checkRequest", () => {
     "I want to make a pirate game for my little brother",
     "crack the code puzzle game for kids",
     "an app to fix my cracked screen photos",
+    "a strategy game like Civilization, my old laptop is about to crack",
+    "a game that doesn't make me crack my knuckles from stress",
     "torrent client like uTorrent",
     "a lightweight torrent app for Linux",
   ])("allows %s", (text) => {

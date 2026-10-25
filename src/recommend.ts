@@ -16,16 +16,36 @@ export const CLEAN_ROOM_RULES = [
   "Read and match file formats only from public specifications or your own test files.",
 ];
 
+// "layers and blend modes, and layer masks": a comma before the last "and" when a label has its own "and".
+const list = (items: string[]) =>
+  items.length <= 1
+    ? (items[0] ?? "")
+    : `${items.slice(0, -1).join(", ")}${items.some((i) => i.includes(" and ")) ? "," : ""} and ${items[items.length - 1]}`;
+
+/** A plain-language reason: what it does from your list, what it doesn't, where it runs, and the catch. */
 function whyText(c: CandidateScore, product: Product, profile: GoalProfile): string {
-  const parts = [`covers ${pct(c.mustHaveCoverage)} of your must-haves`];
-  if (c.platformMatch) parts.push("runs on your platform");
-  else parts.push("is not available on the platform you named");
-  parts.push(c.openSource ? `open source (${c.license})` : "free of charge but not open source");
-  if (profile.vibe.length > 0 && c.vibeMatch === 1) parts.push("matches the vibe you described");
-  else if (profile.vibe.length > 0 && c.vibeMatch > 0) parts.push("close to the vibe you described");
-  if (c.learningFit < 0.5) parts.push("has a steep learning curve for a beginner");
-  return `${c.name} ${parts.join(", ")}. A free option for what you would use ${product.name} for.`;
+  const label = (id: string) => (product.features.find((f) => f.id === id)?.label ?? id).toLowerCase();
+  const must = new Set(profile.mustHaves);
+  const has = c.covered.filter((id) => must.has(id)).map(label);
+  const viaPlugin = c.plugin.filter((id) => must.has(id)).map(label);
+  const partly = c.partial.filter((id) => must.has(id)).map(label);
+  const lacks = c.missing.filter((id) => must.has(id)).map(label);
+
+  const parts: string[] = [];
+  parts.push(has.length ? `${c.name} has ${list(has)}` : `${c.name} covers ${pct(c.mustHaveCoverage)} of your must-haves`);
+  if (viaPlugin.length) parts.push(`${list(viaPlugin)} through a plug-in`);
+  if (profile.platforms.length) parts.push(c.platformMatch ? `runs on ${list(profile.platforms.map(platformName))}` : `does not run on ${list(profile.platforms.map(platformName))}`);
+  parts.push(c.openSource ? `is open source (${c.license})` : "is free but not open source");
+  const caveats: string[] = [];
+  if (partly.length) caveats.push(`${list(partly)} ${partly.length > 1 ? "are" : "is"} only partly there`);
+  if (lacks.length) caveats.push(`it has no ${list(lacks)}`);
+  if (c.learningFit < 0.5) caveats.push("it takes a while to learn for a beginner");
+  if (profile.vibe.length > 0 && c.vibeMatch === 1) caveats.push(`it matches the ${list(profile.vibe)} feel you described`);
+  return `${list(parts)}.${caveats.length ? ` ${caveats.map((t) => t[0].toUpperCase() + t.slice(1)).join(". ")}.` : ""} A free option for what you would use ${product.name} for.`;
 }
+
+const PLATFORM_NAMES: Record<string, string> = { windows: "Windows", mac: "Mac", linux: "Linux", web: "the web", android: "Android", ios: "iPhone and iPad" };
+const platformName = (p: string) => PLATFORM_NAMES[p] ?? p;
 
 function toPick(c: CandidateScore, rank: number, product: Product, profile: GoalProfile): Pick {
   const alt = product.alternatives.find((a) => a.id === c.alternativeId)!;

@@ -16,6 +16,8 @@ const goodProfile = {
   skillLevel: "beginner",
   vibe: ["cozy"],
   openSourceOnly: false,
+  clarifyingQuestion: null,
+  answerOptions: [],
 };
 
 describe("orchestrator", () => {
@@ -26,6 +28,25 @@ describe("orchestrator", () => {
     const rec = result as Recommendation;
     expect(rec.status).toBe("ok");
     expect(rec.picks[0].name).toMatch(/Luanti/);
+  });
+
+  it("asks a clarifying question instead of guessing when the request is too vague", async () => {
+    const offline = (await run("app", { offline: true })).result as Recommendation;
+    expect(offline.clarify?.question).toMatch(/What do you want to do/);
+    expect(offline.clarify?.options.length).toBeGreaterThan(0);
+    expect(offline.picks).toEqual([]);
+    expect(offline.buildPlan).toBeNull();
+
+    const vague = { ...goodProfile, targetProductId: null, category: "other", mustHaves: [], vibe: [], clarifyingQuestion: "What is it for?", answerOptions: ["Homework", "Games"] };
+    const client = fakeClient([{ stop_reason: "end_turn", parsed_output: vague }]);
+    const { result, trace } = await run("I need help with my stuff for school", { client });
+    expect(client.calls).toBe(1); // no live discovery for a question
+    expect((result as Recommendation).clarify).toEqual({ question: "What is it for?", options: ["Homework", "Games"] });
+    expect(trace.find((t) => t.step === "alternative-finder")?.detail).toBe("catalog");
+
+    // A question is dropped once the request does match a product.
+    const matched = fakeClient([{ stop_reason: "end_turn", parsed_output: { ...goodProfile, clarifyingQuestion: "Which one?", answerOptions: [] } }]);
+    expect(((await run("blocks with friends", { client: matched })).result as Recommendation).clarify).toBeFalsy();
   });
 
   it("falls back to keywords when there is no API key", async () => {
