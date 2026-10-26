@@ -1,7 +1,8 @@
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { OPENROUTER_URL } from "../src/llm.js";
-import { buildApp, checkFile, displayTitle, extractFile, REBUILD_MODELS, researchApp, type AppProfile, type BuiltFile } from "../src/rebuild.js";
+import { isBlockGame } from "../src/game-engine.js";
+import { buildApp, checkFile, displayTitle, extractFile, planApp, planText, REBUILD_MODELS, repairApp, researchAgent, researchApp, scriptErrors, siteExists, withGuard, type AppProfile, type BuiltFile } from "../src/rebuild.js";
 import { runInstructions } from "../src/rebuild-templates.js";
 import { createServer } from "../src/server.js";
 
@@ -32,6 +33,18 @@ const RESEARCH = {
   },
   stack: { likely: ["React", "PostgreSQL"], signals: [{ signal: "Job posts", inference: "React on the web" }], confidence: "medium" },
   naming: { appName: "Blockloom", tagline: "Your blocks, your way" },
+  questions: { questions: [{ question: "What will you use it for?", options: ["School notes", "Work projects", "Journal"] }, { question: "Only one answer?", options: ["Yes"] }] },
+};
+
+const PLAN = {
+  pitch: "A calm notes app for school.",
+  look: "Soft paper colors",
+  screens: [{ name: "Pages", purpose: "Write notes", parts: ["sidebar", "editor"] }],
+  features: [{ label: "Block editor", behavior: "Type / to add a block.", details: ["Enter adds a block"] }],
+  data: [{ name: "Page", fields: ["title", "blocks"] }],
+  sampleContent: ["Biology notes: cell parts", "Weekly planner"],
+  extras: ["Help panel"],
+  shortcuts: ["Cmd+N new page"],
 };
 
 const APP = `<!DOCTYPE html>
@@ -57,8 +70,10 @@ describe("rebuild research", () => {
     expect(p.officialUrl).toBe("https://www.notion.so");
     expect(p.features.map((f) => f.label)).toEqual(["Block editor", "Databases", "Templates"]);
     expect(p.stack.likely).toContain("React");
-    expect(trace.map((t) => t.step)).toEqual(["guard-input", "product-profiler", "feature-mapper", "stack-detective", "link-checker"]);
-    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(trace.map((t) => t.step)).toEqual(["guard-input", "product-profiler", "feature-mapper", "stack-detective", "question-asker", "link-checker"]);
+    expect(fetch).toHaveBeenCalledTimes(4);
+    // Questions with fewer than two answers are dropped.
+    expect(p.questions).toEqual([{ question: "What will you use it for?", options: ["School notes", "Work projects", "Journal"] }]);
     const system = JSON.parse(String((fetch.mock.calls[0][1] as RequestInit).body)).messages[0].content;
     expect(system).toMatch(/public information/);
     expect(system).toMatch(/decompiling/);
@@ -150,7 +165,132 @@ describe("rebuild build", () => {
   });
 });
 
+describe("rebuild agents and games", () => {
+  it("runs one agent at a time, and research merges agent results without calling the model again", async () => {
+    const fetch = fakeOpenRouter(RESEARCH);
+    const one = await researchAgent("Notion", "feature-mapper", { env, fetch });
+    expect((one.result as { features: unknown[] }).features).toHaveLength(4);
+    await expect(researchAgent("Notion", "nope", { env, fetch })).rejects.toThrow(/unknown agent/);
+    const merged = await researchApp("Notion", { env, fetch, urlCheck: async () => true }, { "product-profiler": RESEARCH.profile, "feature-mapper": RESEARCH.features, "stack-detective": RESEARCH.stack, "question-asker": RESEARCH.questions });
+    expect(merged.result).toMatchObject({ status: "ok", officialName: "Notion" });
+    expect(merged.trace.find((t) => t.step === "feature-mapper")?.detail).toBe("ran in parallel");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("builds games on the tested engine: the model's design, the person's colors, and mods switched on", async () => {
+    const design = { tagline: "Dig, build, survive", sky: "#1e5bd8", skyNight: "#06122e", accent: "#ffd23f", worldStyle: "hills", blocks: [{ key: "grass", name: "Moss", color: "#2f9e44" }],
+      survival: true, creative: true, crafting: true, dayNight: true, nightCreatures: true, coop: false, lowSpec: false, dayLengthSec: 200 };
+    const fetch = fakeOpenRouter({ ...RESEARCH, naming: { appName: "Blockreach", tagline: "" }, game_design: design });
+    const { result, trace } = await buildApp({ ...BUILD, target: "Minecraft", category: "sandbox game", summary: "A block building game",
+      features: [{ label: "Mining and building" }, { label: "Co-op on LAN", custom: true }], notes: "blue themed background" }, { env, fetch });
+    const f = result as BuiltFile;
+    expect(f).toMatchObject({ engine: "rvai-blocks", source: "ai", filename: "blockreach-alt-to-minecraft.html" });
+    expect(trace.map((t) => t.step)).toEqual(["guard-input", "namer", "game-designer", "file-checker"]);
+    expect(f.content).toContain('"sky":"#1e5bd8"');
+    expect(f.content).toContain('"coop":true');
+    expect(f.content).toContain('"name":"Moss"');
+    expect(scriptErrors(f.content)).toEqual([]);
+    const designCall = JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body));
+    expect(designCall.messages[1].content).toContain("blue themed background");
+  });
+
+  it("still gives a playable game with no AI key", async () => {
+    const f = (await buildApp({ ...BUILD, target: "Minecraft", category: "sandbox game" }, { env: {} })).result as BuiltFile;
+    expect(f).toMatchObject({ engine: "rvai-blocks", source: "template" });
+    expect(f.content).toContain("__rvaiGame");
+    expect(checkFile(f.content, "html")).toEqual([]);
+  });
+
+  it("rejects a file whose script doesn't compile and tells the model why on the retry", async () => {
+    const broken = APP.replace('localStorage.setItem("x","1")', "let ny = 1; let ny = 2;");
+    const replies = [broken, APP];
+    const fetch = fakeOpenRouter(RESEARCH, () => replies.shift()!);
+    const { result } = await buildApp(BUILD, { env, fetch });
+    expect((result as BuiltFile).source).toBe("ai");
+    const retry = JSON.parse(String((fetch.mock.calls[2][1] as RequestInit).body)).messages[1].content;
+    expect(retry).toMatch(/rejected because it has a script error \(Identifier 'ny' has already been declared\)/);
+  });
+});
+
+describe("rebuild plan, watchdog, repair and basic mode", () => {
+  it("plans the app in detail and the builder follows the plan, the answers and the reliability rule", async () => {
+    const fetch = fakeOpenRouter({ ...RESEARCH, app_plan: PLAN }, APP);
+    const planned = await planApp({ ...BUILD, answers: [{ question: "What will you use it for?", answer: "School notes" }] }, { env, fetch });
+    expect(planned.result).toMatchObject({ status: "ok", engine: null, plan: PLAN });
+    expect(JSON.parse(String((fetch.mock.calls[0][1] as RequestInit).body)).messages[1].content).toContain("School notes");
+    await buildApp({ ...BUILD, plan: PLAN, answers: [{ question: "What will you use it for?", answer: "School notes" }] }, { env, fetch });
+    const ask = JSON.parse(String((fetch.mock.calls[2][1] as RequestInit).body)).messages[1].content;
+    expect(ask).toContain("Biology notes: cell parts");
+    expect(ask).toContain("What will you use it for? School notes");
+    expect(ask).toMatch(/not sure an extra .* leave it out/);
+    expect(planText(PLAN)).toContain("Starter content");
+  });
+
+  it("skips planning for block games and without a model", async () => {
+    expect((await planApp({ ...BUILD, target: "Minecraft", category: "sandbox game" }, { env: {} })).result).toMatchObject({ plan: null, engine: "rvai-blocks" });
+    expect((await planApp(BUILD, { env: {} })).result).toMatchObject({ plan: null, engine: null });
+  });
+
+  it("asks for a short core-only file in basic mode", async () => {
+    const fetch = fakeOpenRouter(RESEARCH, APP);
+    await buildApp({ ...BUILD, basic: true, plan: PLAN }, { env, fetch });
+    const ask = JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body)).messages[1].content;
+    expect(ask).toContain("BASIC version");
+    expect(ask).not.toContain("Biology notes");
+  });
+
+  it("puts the watchdog first in every HTML file, once", async () => {
+    const f = (await buildApp(BUILD, { env: {} })).result as BuiltFile;
+    expect(f.content.indexOf('id="rvai-guard"')).toBeLessThan(f.content.indexOf("<title>"));
+    expect(withGuard(f.content, "html").match(/rvai-guard/g)).toHaveLength(1);
+    expect(checkFile(f.content, "html")).toEqual([]);
+    expect(withGuard("x", "python")).toBe("x");
+  });
+
+  it("repairs a file that crashed and keeps its title, notice and watchdog", async () => {
+    const built = (await buildApp(BUILD, { env, fetch: fakeOpenRouter(RESEARCH, APP) })).result as BuiltFile;
+    const fixedApp = APP.replace("<title>Blockloom</title>", "<title>other</title>").replace('"1"', '"2"');
+    const fetch = fakeOpenRouter({}, fixedApp);
+    const { result } = await repairApp({ target: "Notion", content: built.content, errors: ["x is not defined (line 3)"] }, { env, fetch });
+    const r = result as { content: string };
+    const ask = JSON.parse(String((fetch.mock.calls[0][1] as RequestInit).body)).messages[1].content;
+    expect(ask).toContain("x is not defined");
+    expect(ask).not.toContain("rvai-guard");
+    expect(r.content).toContain('"2"');
+    expect(r.content).toContain(`<title>${built.displayTitle}</title>`);
+    expect(r.content).toContain("made with RVAI");
+    expect(r.content.match(/rvai-guard/g)).toHaveLength(1);
+  });
+
+  it("only uses the game engine for block-building games", () => {
+    expect(isBlockGame("Minecraft sandbox game")).toBe(true);
+    expect(isBlockGame("Duolingo language learning with game-like lessons")).toBe(false);
+    expect(isBlockGame("Quizlet study tools with a matching game")).toBe(false);
+  });
+
+  it("counts a site behind bot protection as real", async () => {
+    const real = globalThis.fetch;
+    try {
+      globalThis.fetch = vi.fn(async () => new Response("", { status: 403 })) as typeof fetch;
+      expect(await siteExists("https://quizlet.com")).toBe(true);
+      globalThis.fetch = vi.fn(async () => new Response("", { status: 404 })) as typeof fetch;
+      expect(await siteExists("https://example.com/gone")).toBe(false);
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+});
+
 describe("rebuild helpers", () => {
+  it("catches script errors a plain compile misses: browser names and duplicates across script tags", () => {
+    const page = (...scripts: string[]) => `<!DOCTYPE html><html><head></head><body>${scripts.map((c) => `<script>${c}</script>`).join("")}</body></html>`;
+    expect(scriptErrors(page("let top = 0; let left = 1;"))[0]).toMatch(/Identifier 'top' has already been declared: "top" is the browser's own name/);
+    expect(scriptErrors(page("const location = 'home';"))[0]).toMatch(/location/);
+    expect(scriptErrors(page("let score = 0;", "let score = 1;"))[0]).toMatch(/Identifier 'score' has already been declared/);
+    expect(scriptErrors(page("let self = 1; var name = 'x'; window.alert; document.body;", "const other = top;"))).toEqual([]);
+    expect(scriptErrors(page("while (true) {}"))).toEqual([]);
+  });
+
   it("extracts the document from a chatty reply and flags broken files", () => {
     expect(extractFile("Sure!\n" + APP + "\nThanks", "html")).toBe(APP + "\n");
     expect(checkFile("<!DOCTYPE html><html><body>cut off", "html")).toContain("is cut off before </html>");
