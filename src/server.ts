@@ -109,7 +109,7 @@ export function createServer(base: RunOptions = {}): Server {
         return send(200, await researchAgent(name, body.agent, base));
       }
       if (req.method === "POST" && url === "/api/rebuild/plan") return send(200, await planApp(await readJson(req, 16_384), base));
-      if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 65_536), base));
+      if (req.method === "POST" && url === "/api/rebuild/build") return send(200, await buildApp(await readJson(req, 512_000), base));
       if (req.method === "POST" && url === "/api/rebuild/repair") return send(200, await repairApp(await readJson(req, 512_000), base));
       if (req.method === "POST" && req.url === "/api/recommend") {
         const body = (await readJson(req)) as { query?: unknown; offline?: unknown; context?: unknown; plan?: unknown };
