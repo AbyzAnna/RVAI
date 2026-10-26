@@ -255,10 +255,31 @@ export async function mountRebuild(root, { app = '', notes = '', onFile } = {}) 
       sub = `${modelLabel} is writing one original file with ${body.features.length} features${plan ? ', following the plan' : ''}. This can take a few minutes.`;
       setAgent('namer', 'working');
       setTimeout(() => { if (root.querySelector('[data-agent="namer"]')?.dataset.st === 'working') { setAgent('namer', 'ok'); setAgent('app-builder', 'working'); } }, 2500);
-      const { result, trace } = await post('/api/rebuild/build', body);
+      let { result, trace } = await post('/api/rebuild/build', body);
+      // A long file can take more than one request: each part picks up where the last one stopped.
+      while (result.status === 'partial') {
+        const part = result.part + 1;
+        sub = `${modelLabel} is still writing (part ${part}): ${(result.bytes / 1024).toFixed(0)} KB so far.`;
+        setAgent('app-builder', 'working', `part ${part}`);
+        ({ result, trace } = await post('/api/rebuild/build', { ...body, partial: result.partial, appName: result.appName, part }));
+      }
       for (const t of trace || []) setAgent(t.step === 'game-designer' ? 'app-builder' : t.step, t.status, secs(t.ms));
       if (result.status === 'refused') { $('build-err').textContent = result.message; return; }
       if (!trace?.some(t => t.step === 'file-checker')) setAgent('file-checker', 'ok', result.source === 'ai' ? 'scripts compile' : 'template');
+
+      // The model couldn't finish the full file (too long or out of time) and the plain template came back:
+      // build the basic, core-features-only version instead, which is short enough to finish reliably.
+      const builder = (trace || []).find(t => t.step === 'app-builder');
+      if (result.format === 'html' && !result.engine && result.source === 'template' && builder?.status === 'fallback' && !/no AI key|offline/.test(builder.detail || '')) {
+        sub = 'The full version didn’t finish in time, so RVAI is building a basic, reliable version with the core features.';
+        setAgent('app-builder', 'working', 'basic version');
+        const basic = await post('/api/rebuild/build', basicBody(body, state.profile));
+        if (basic.result?.status === 'ok' && basic.result.source === 'ai') {
+          Object.assign(result, basic.result, { basic: true });
+          const bt = (basic.trace || []).find(t => t.step === 'app-builder');
+          setAgent('app-builder', 'ok', `basic version · ${secs(bt?.ms || 0)}`);
+        } else setAgent('app-builder', 'fallback', 'starter template');
+      }
 
       // 3. Open it in a hidden sandbox; if it crashes or shows nothing, the Fixer repairs it once.
       if (result.format === 'html') {

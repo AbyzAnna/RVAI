@@ -3,7 +3,7 @@ import { z } from "zod";
 import { scanForInjection } from "./agents/index.js";
 import { type UrlCheck } from "./discover.js";
 import { auditOutput, checkRequest, isSafeUrl, REFUSAL_PREFIX, SYSTEM_RULES } from "./guardrails.js";
-import { completeJson, completeText, hasApiCredentials, hasOpenRouterKey, type MessagesClient, type Provider } from "./llm.js";
+import { completeJson, completeText, streamText, hasApiCredentials, hasOpenRouterKey, type MessagesClient, type Provider } from "./llm.js";
 import { runStep, type TraceEntry } from "./orchestrator.js";
 import { gameConfig, GameDesign, gameHtml, isBlockGame } from "./game-engine.js";
 import { htmlTemplate, notice, osName, pythonTemplate, runInstructions, type Format } from "./rebuild-templates.js";
@@ -342,8 +342,37 @@ export const BuildRequest = z.object({
   plan: AppPlan.optional(),
   /** Safe mode: only the core features in a simple, reliable file, no extras. Used when the full build still crashes after a repair. */
   basic: z.boolean().default(false),
+  /** Continuing a file that was cut off: what was written so far, the name it already has, and which part this is. */
+  partial: z.string().max(400_000).optional(),
+  appName: z.string().max(60).optional(),
+  part: z.number().int().min(1).max(3).default(1),
 });
 export type BuildRequest = z.infer<typeof BuildRequest>;
+
+/** A long file that didn't finish inside one request: the page sends it back with `partial` to continue it. */
+export interface PartialFile {
+  status: "partial";
+  appName: string;
+  partial: string;
+  part: number;
+  bytes: number;
+}
+
+/** How many requests one file may take; after that a cut-off file counts as failed. */
+export const MAX_PARTS = 3;
+
+/**
+ * Joins a continuation onto the cut-off text: drops code fences and any lines the model repeated.
+ * A reply that starts over with <!DOCTYPE html> replaces the old text.
+ */
+export function joinContinuation(sofar: string, more: string): string {
+  const next = more.replace(/^\s*```[\w-]*\n?/, "").replace(/\n?```\s*$/, "");
+  if (/^\s*<!doctype html/i.test(next)) return next;
+  for (let k = Math.min(next.length, sofar.length, 4000); k >= 12; k--) {
+    if (sofar.endsWith(next.slice(0, k))) return sofar + next.slice(k);
+  }
+  return sofar + next;
+}
 
 export interface BuiltFile {
   status: "ok";
@@ -498,7 +527,7 @@ ${format}
 ${
       req.basic
         ? "Keep it short and simple (under 400 lines). Every part must work 100%."
-        : 'Make it detailed and complete (roughly 700 to 1200 lines): no TODOs, no placeholders, no fake buttons, no "coming soon".'
+        : 'Make it detailed and complete in 600 to 900 lines, under 70 KB in total: compact CSS and code, no TODOs, no placeholders, no fake buttons, no "coming soon". Never go past 900 lines: a file that is cut off is lost.'
     }
 Reliability comes first. The core features must work perfectly. If you are not sure an extra (a filter, animation, optional panel or polish item) will work without bugs, leave it out: a smaller app that fully works beats a bigger one that breaks.`,
   };
@@ -567,7 +596,7 @@ function safeName(name: string, target: string, category: string): string {
  * one retry), check it (File Checker), and fall back to an offline template if every try fails.
  * Always returns exactly one file.
  */
-export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promise<{ result: BuiltFile | RebuildRefusal; trace: TraceEntry[] }> {
+export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promise<{ result: BuiltFile | PartialFile | RebuildRefusal; trace: TraceEntry[] }> {
   const req = BuildRequest.parse(input);
   const target = clip(req.target, 80);
   const everything = requestText(req);
@@ -581,7 +610,7 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
   const features = req.features.map((f) => ({ label: clip(f.label, 80), description: clip(f.description, 240), custom: f.custom }));
   const skip = injected ? "possible prompt injection" : opts.offline ? "offline mode" : "no AI key";
 
-  const naming = await runStep(
+  const naming = req.appName ? { appName: req.appName, tagline: "" } : await runStep(
     {
       name: "namer",
       schema: Naming,
@@ -609,6 +638,8 @@ export async function buildApp(input: unknown, opts: RebuildOptions = {}): Promi
   let engine: BuiltFile["engine"] = null;
   const deadline = Date.now() + (opts.budgetMs ?? 250_000);
   let content: string;
+  /** Set when the file was cut off and will be continued by the next request. */
+  let cutOff: string | null = null;
 
   if (format === "html" && isBlockGame([target, req.category, req.summary].join(" "))) {
     // Games use RVAI's tested engine, so the file always loads and plays; the chosen model designs the game.
@@ -656,8 +687,20 @@ ${wishes(req)}${req.notes || req.answers.length ? "Follow their wishes, especial
           const left = deadline - Date.now();
           if (left < 45_000) throw new Error("out of time for another try");
           // On the retry, tell the model what was wrong with its first file so it can avoid it.
-          const ask = lastProblem ? `${user}\n\nYour previous attempt was rejected because it ${lastProblem}. Write the whole file again. Check every variable name is declared only once, and never name your own variables window, document, location or top.` : user;
-          const file = extractFile(await completeText(system, ask, { ...llm(p!, model, opts, 32000), timeoutMs: Math.min(BUILD_TIMEOUT_MS, left - 5_000) }), format);
+          const ask = lastProblem
+            ? `${user}\n\nYour previous attempt was rejected because it ${lastProblem}. Write the whole file again. Check every variable name is declared only once, and never name your own variables window, document, location or top.`
+            : req.partial
+              ? `${user}\n\nYou already wrote the start of this file, shown below. It was cut off. Continue from the exact character where it stops: output only the rest of the file, without repeating anything, and end it properly${format === "html" ? " with </html>" : ""}.\n\nTHE FILE SO FAR:\n${req.partial}`
+              : user;
+          // Streamed, so a long file that can't finish in this request is kept and continued in the next one.
+          const reply = await streamText(system, ask, { ...llm(p!, model, opts, 32000), stopAt: Date.now() + Math.min(BUILD_TIMEOUT_MS, left - 10_000) });
+          const text = req.partial && !lastProblem ? joinContinuation(req.partial, reply.text) : reply.text;
+          if (!reply.finished) {
+            if (req.part >= MAX_PARTS) throw new Error("the file was still unfinished after its last part");
+            cutOff = text;
+            return "";
+          }
+          const file = extractFile(text, format);
           const problems = checkFile(file, format);
           if (problems.length) {
             lastProblem = problems.join(", ");
@@ -678,6 +721,11 @@ ${wishes(req)}${req.notes || req.answers.length ? "Follow their wishes, especial
     );
   }
 
+  if (cutOff !== null) {
+    const step = trace.find((t) => t.step === "app-builder");
+    if (step) step.detail = `part ${req.part} written, continuing in part ${req.part + 1}`;
+    return { result: { status: "partial", appName, partial: cutOff, part: req.part, bytes: Buffer.byteLength(cutOff) }, trace };
+  }
   const final = withGuard(withNotice(withTitle(content, format, title), format, notice(title, target, instructions)), format);
   return {
     result: {

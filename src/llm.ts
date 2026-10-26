@@ -177,3 +177,73 @@ export async function completeText(system: string, user: string, opts: LlmOption
   if (choice.finish_reason === "length") throw new Error("the model ran out of room before finishing the file");
   return choice.message.content;
 }
+
+export interface StreamedText {
+  text: string;
+  /** false when the reply was cut off: by the token limit or because `stopAt` came first. */
+  finished: boolean;
+}
+
+/**
+ * Like completeText, but streams the reply so a long file that can't finish in time is kept instead of lost:
+ * at `stopAt` (a Date.now() time) or at the token limit it returns what was written so far with finished=false.
+ * The Anthropic path has no partial result and behaves like completeText.
+ */
+export async function streamText(system: string, user: string, opts: LlmOptions & { stopAt: number }): Promise<StreamedText> {
+  if (opts.provider === "anthropic") return { text: await completeText(system, user, { ...opts, timeoutMs: Math.max(1000, opts.stopAt - Date.now()) }), finished: true };
+  const apiKey = opts.apiKey ?? (opts.env ?? process.env).OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), Math.max(0, opts.stopAt - Date.now()));
+  let text = "";
+  try {
+    const res = await (opts.fetch ?? fetch)(OPENROUTER_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://github.com/AbyzAnna/RVAI", "X-Title": "RVAI" },
+      body: JSON.stringify({
+        model: opts.model ?? OPENROUTER_DEFAULT_MODEL,
+        max_tokens: opts.maxTokens ?? 16000,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        reasoning: { effort: "low" },
+        stream: true,
+      }),
+      signal: abort.signal,
+    });
+    if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+    // A plain JSON answer (some proxies and the tests) is read like completeText's.
+    if (!(res.headers.get("content-type") ?? "").includes("event-stream")) {
+      const choice = Completion.parse(await res.json()).choices[0];
+      if (choice.message.refusal) throw new Error("the model declined the request");
+      return { text: choice.message.content ?? "", finished: choice.finish_reason !== "length" };
+    }
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finish: string | null = null;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
+        const event = JSON.parse(line.slice(6)) as { error?: { message?: string }; choices?: Array<{ delta?: { content?: string | null }; finish_reason?: string | null }> };
+        if (event.error) throw new Error(`OpenRouter: ${event.error.message ?? "stream error"}`);
+        const choice = event.choices?.[0];
+        text += choice?.delta?.content ?? "";
+        if (choice?.finish_reason) finish = choice.finish_reason;
+      }
+    }
+    return { text, finished: finish !== null && finish !== "length" };
+  } catch (err) {
+    // Out of time: keep what was written so far, so the next request can continue it.
+    if (abort.signal.aborted && text) return { text, finished: false };
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
