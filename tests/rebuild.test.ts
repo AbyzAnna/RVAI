@@ -2,7 +2,7 @@ import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { OPENROUTER_URL } from "../src/llm.js";
 import { isBlockGame } from "../src/game-engine.js";
-import { buildApp, checkFile, displayTitle, extractFile, planApp, planText, REBUILD_MODELS, repairApp, researchAgent, researchApp, scriptErrors, siteExists, withGuard, type AppProfile, type BuiltFile } from "../src/rebuild.js";
+import { buildApp, checkFile, displayTitle, extractFile, joinContinuation, planApp, planText, REBUILD_MODELS, repairApp, researchAgent, researchApp, scriptErrors, siteExists, withGuard, type AppProfile, type BuiltFile } from "../src/rebuild.js";
 import { runInstructions } from "../src/rebuild-templates.js";
 import { createServer } from "../src/server.js";
 
@@ -278,6 +278,41 @@ describe("rebuild plan, watchdog, repair and basic mode", () => {
     } finally {
       globalThis.fetch = real;
     }
+  });
+});
+
+describe("rebuild long files in parts", () => {
+  it("keeps a cut-off file and continues it in the next request, with the same name", async () => {
+    const cut = APP.indexOf("<script>") + 20;
+    const replies = [ok(APP.slice(0, cut), "length"), ok(APP.slice(cut - 30))];
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const name = JSON.parse(String(init?.body)).response_format?.json_schema?.name;
+      return name ? ok(JSON.stringify(RESEARCH.naming)) : replies.shift()!;
+    });
+    const first = (await buildApp(BUILD, { env, fetch })).result as { status: string; partial: string; appName: string; part: number };
+    expect(first).toMatchObject({ status: "partial", appName: "Blockloom", part: 1 });
+    expect(JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body)).stream).toBe(true);
+    const { result, trace } = await buildApp({ ...BUILD, partial: first.partial, appName: first.appName, part: 2 }, { env, fetch });
+    const f = result as BuiltFile;
+    expect(f).toMatchObject({ status: "ok", source: "ai", appName: "Blockloom" });
+    expect(f.content).toContain('localStorage.setItem("x","1")</script></body></html>');
+    expect(trace.map((t) => t.step)).not.toContain("namer");
+    const ask = JSON.parse(String((fetch.mock.calls[2][1] as RequestInit).body)).messages[1].content;
+    expect(ask).toContain("THE FILE SO FAR");
+  });
+
+  it("gives up after the last part and uses the template", async () => {
+    const fetch = fakeOpenRouter(RESEARCH, () => "");
+    fetch.mockImplementation(async () => ok("<!DOCTYPE html><html>", "length"));
+    const { result } = await buildApp({ ...BUILD, partial: "<!DOCTYPE html><html><head>", appName: "Blockloom", part: 3 }, { env, fetch });
+    expect((result as BuiltFile).source).toBe("template");
+  });
+
+  it("joins a continuation without repeated text or fences", () => {
+    expect(joinContinuation("<section><p>hello wor", "```html\n<section><p>hello world</p>\n```")).toBe("<section><p>hello world</p>");
+    expect(joinContinuation("abc", "<!DOCTYPE html><html></html>")).toBe("<!DOCTYPE html><html></html>");
+    const sofar = "const items = [1, 2, 3];\nfunction render() {";
+    expect(joinContinuation(sofar, "function render() {\n  draw();\n}")).toBe(sofar + "\n  draw();\n}");
   });
 });
 
